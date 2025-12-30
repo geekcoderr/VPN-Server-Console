@@ -327,21 +327,36 @@ async def remove_peer_from_config(public_key: str) -> None:
 
 async def reload_wireguard() -> Tuple[bool, str]:
     """
-    Reload WireGuard using wg-quick down/up.
-    Returns (success, error_message).
+    Reload WireGuard configuration without bringing the interface down.
+    Uses 'wg syncconf' for zero-downtime updates.
     """
     try:
-        # Down (ignore errors - interface might not be up)
-        await run_command(["wg-quick", "down", WG_INTERFACE])
+        # 1. Create temporary strip config (removes wg-quick specific directives)
+        # wg-quick strip outputs the raw config that `wg` command accepts
+        code, stdout, stderr = await run_command(["wg-quick", "strip", str(WG_CONFIG_PATH)])
+        if code != 0:
+            return False, f"Failed to strip config: {stderr}"
         
-        # Up
-        code, stdout, stderr = await run_command(["wg-quick", "up", WG_INTERFACE])
+        stripped_config = stdout
         
-        success = code == 0
-        error = stderr if not success else ""
-        
-        log_wg_reload(success, error if error else None)
-        return success, error
+        # 2. Write to temp file
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp:
+            tmp.write(stripped_config)
+            tmp_path = tmp.name
+            
+        try:
+            # 3. Sync configuration to running interface
+            code, stdout, stderr = await run_command(["wg", "syncconf", WG_INTERFACE, tmp_path])
+            
+            success = code == 0
+            error = stderr if not success else ""
+            
+            log_wg_reload(success, error if error else None)
+            return success, error
+            
+        finally:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
         
     except Exception as e:
         log_wg_reload(False, str(e))
