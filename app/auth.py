@@ -100,7 +100,7 @@ async def login(
         max_age=SESSION_MAX_AGE,
         httponly=True,
         samesite="lax",
-        secure=False  # Set to True in production with HTTPS
+        secure=True  # HTTPS enabled via Nginx
     )
     
     return response
