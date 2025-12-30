@@ -73,14 +73,19 @@ async def heal_system():
                 print(f"  Geek is using IP: {ip_match.group(1)}")
             preserved_peers.append(block.strip())
 
-    # 5. Rebuild [Interface] with CORRECT Rules
-    print("Rebuilding Interface Block with correct Firewall Rules...")
+    # 5. Rebuild [Interface] with CORRECT Rules (Runbook Step 6 & 5)
+    print("Rebuilding Interface Block with Runbook-compliant Firewall Rules...")
     interface_block = f"""[Interface]
 Address = 10.50.0.1/24
 ListenPort = 51820
 PrivateKey = {svr_priv_key}
-PostUp = iptables -A FORWARD -i wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -s 10.50.0.0/24 -o {start_interface} -j MASQUERADE
-PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -s 10.50.0.0/24 -o {start_interface} -j MASQUERADE
+
+# Runbook Section 6: Firewall, NAT & Forwarding
+# - Forward traffic from wg0 to WAN
+# - Allow established return traffic
+# - Masquerade outbound traffic
+PostUp = iptables -A FORWARD -i wg0 -o {start_interface} -j ACCEPT; iptables -A FORWARD -i {start_interface} -o wg0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; iptables -t nat -A POSTROUTING -s 10.50.0.0/24 -o {start_interface} -j MASQUERADE
+PostDown = iptables -D FORWARD -i wg0 -o {start_interface} -j ACCEPT; iptables -D FORWARD -i {start_interface} -o wg0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; iptables -t nat -D POSTROUTING -s 10.50.0.0/24 -o {start_interface} -j MASQUERADE
 """
 
     # 6. Write New Config
