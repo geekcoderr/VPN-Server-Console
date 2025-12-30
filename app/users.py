@@ -307,7 +307,7 @@ async def sync_all_users(admin: str = Depends(get_current_admin)):
     for user in users:
         if user['status'] == 'active':
             try:
-                if (time.time() - peer_data['latest_handshake']) < 600:_config(user['public_key']):
+                if not peer_exists_in_config(user['public_key']):
                     await add_peer_to_config(user['public_key'], user['assigned_ip'])
                     synced_count += 1
             except Exception as e:
