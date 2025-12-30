@@ -21,7 +21,7 @@ VPN_IP_END = 254      # Last client IP: 10.50.0.254
 
 # Server Endpoint
 # FORCED to your domain. No environment variable fallback to avoid confusion.
-VPN_SERVER_ENDPOINT = "vpn.nishantmaheshwari.online:51820"
+VPN_SERVER_ENDPOINT = "wg.nishantmaheshwari.online:51820"
 
 # Client config defaults
 CLIENT_DNS = "1.1.1.1"
