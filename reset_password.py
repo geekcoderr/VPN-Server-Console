@@ -1,16 +1,18 @@
 
 import asyncio
 import sys
-from passlib.context import CryptContext
-from app.database import init_db, get_db
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+import bcrypt
+import aiosqlite
+from app.config import DATABASE_URL
 
 async def reset_password(new_password):
-    hashed = pwd_context.hash(new_password)
+    # Hash password directly with bcrypt
+    password_bytes = new_password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password_bytes, salt).decode('utf-8')
     
-    await init_db()
-    async with await get_db() as db:
+    print(f"Connecting to database...")
+    async with aiosqlite.connect(DATABASE_URL) as db:
         await db.execute("UPDATE admin SET password_hash = ? WHERE username = 'geek'", (hashed,))
         await db.commit()
     print(f"Password for 'geek' updated successfully!")
