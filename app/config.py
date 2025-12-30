@@ -16,7 +16,7 @@ WG_INTERFACE = "wg0"
 # VPN Network Configuration
 VPN_SUBNET = "10.50.0.0/24"
 VPN_SERVER_IP = "10.50.0.1"
-VPN_IP_START = 2      # First client IP: 10.50.0.2
+VPN_IP_START = 3      # First client IP: 10.50.0.3 (Reserved .2 for Master User)
 VPN_IP_END = 254      # Last client IP: 10.50.0.254
 
 # Server Endpoint

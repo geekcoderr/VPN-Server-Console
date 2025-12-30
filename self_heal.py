@@ -9,26 +9,36 @@ import asyncio
 import os
 import shutil
 import re
+import subprocess
 from app.database import get_all_users, DB_PATH
 from app.wg import (
     WG_CONFIG_PATH, 
     reload_wireguard, 
-    parse_config, 
-    build_config,
-    add_peer_to_config
 )
-from app.audit import log_wg_reload
+
+def get_default_interface():
+    """Detect the default network interface (e.g., ens5, eth0)."""
+    try:
+        result = subprocess.check_output(["ip", "route", "get", "8.8.8.8"]).decode()
+        match = re.search(r'dev\s+(\S+)', result)
+        return match.group(1) if match else "eth0"
+    except:
+        return "eth0"
 
 async def heal_system():
     print(f"--- Starting IAM Self-Healing ---")
     
-    # 1. Load users from DB (Source of Truth)
+    # 1. Detect Interface
+    start_interface = get_default_interface()
+    print(f"Detected WAN Interface: {start_interface}")
+
+    # 2. Load users from DB (Source of Truth)
     print(f"Reading Database: {DB_PATH}")
     users = await get_all_users()
     active_users = {u['username']: u for u in users if u['status'] == 'active'}
     print(f"Found {len(active_users)} active users in DB.")
 
-    # 2. Backup wg0.conf
+    # 3. Backup wg0.conf
     if not WG_CONFIG_PATH.exists():
         print("Error: wg0.conf not found!")
         return
@@ -37,84 +47,85 @@ async def heal_system():
     shutil.copy2(WG_CONFIG_PATH, backup)
     print(f"Backed up config to {backup}")
 
-    # 3. Read content
+    # 4. Parse Config to find Preserved Peers
     content = WG_CONFIG_PATH.read_text()
     
-    # Extract Interface block
-    interface_section = ""
-    match = re.search(r'(.*?)(?=\n\[Peer\]|$)', content, re.DOTALL)
-    if match:
-        interface_section = match.group(0).strip()
-    else:
-        interface_section = content.strip()
-
-    print("Cleaned Interface config retained.")
-
-    # 4. PRESERVE SPECIAL PEERS (like 'geek')
-    # We look for a peer block that has the comment "# geek" or matches known public key if you have it
-    preserved_peers = []
+    # Extract Interface Key
+    private_key_match = re.search(r'PrivateKey\s*=\s*(\S+)', content)
+    svr_priv_key = private_key_match.group(1) if private_key_match else None
     
-    # Regex to find all peer blocks
-    # Logic: Find [Peer] ... until next [Peer] or EOF
+    # regex split
     peer_blocks = re.split(r'(?=\n\[Peer\])', content)
+    preserved_peers = []
+    used_ips = set()
+    used_ips.add('10.50.0.1') # Server IP
     
     for block in peer_blocks:
-        if "# geek" in block.lower():
-            print("  Found MASTER USER 'geek' in config - Preserving it!")
+        if block.strip().startswith('[Interface]'):
+            continue
+            
+        # Logic to preserve "geek"
+        if "# geek" in block.lower() or ("geek" in block.lower() and "publickey" in block.lower()):
+            print("  Found MASTER USER 'geek' - Preserving and auditing IP...")
+            ip_match = re.search(r'AllowedIPs\s*=\s*([\d\.]+)', block)
+            if ip_match:
+                used_ips.add(ip_match.group(1))
+                print(f"  Geek is using IP: {ip_match.group(1)}")
             preserved_peers.append(block.strip())
-        elif "geek" in block.lower() and "publickey" in block.lower():
-             # Fallback if comment is slightly different
-             print("  Found likely 'geek' peer - Preserving it!")
-             preserved_peers.append(block.strip())
 
-    # 5. Write clean config (Interface + Preserved + DB Users)
+    # 5. Rebuild [Interface] with CORRECT Rules
+    print("Rebuilding Interface Block with correct Firewall Rules...")
+    interface_block = f"""[Interface]
+Address = 10.50.0.1/24
+ListenPort = 51820
+PrivateKey = {svr_priv_key}
+PostUp = iptables -A FORWARD -i wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -s 10.50.0.0/24 -o {start_interface} -j MASQUERADE
+PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -s 10.50.0.0/24 -o {start_interface} -j MASQUERADE
+"""
+
+    # 6. Write New Config
     with open(WG_CONFIG_PATH, 'w') as f:
-        f.write(interface_section + '\n')
+        f.write(interface_block)
         
-        # Write preserved first
+        # Write preserved peers (geek)
         for p in preserved_peers:
             f.write('\n' + p + '\n')
-    
-    print("Purged duplicates, kept Interface + Master User.")
-
-    # 6. Re-add valid users from DB (Avoid duplicates if DB has 'geek' too)
-    print("Restoring valid peers from DB...")
-    count = 0
-    for username, user in active_users.items():
-        # Check if we already preserved this user (by public key comparison to be safe)
-        is_preserved = False
-        for p in preserved_peers:
-            if user['public_key'] in p:
-                is_preserved = True
-                print(f"  Skipping {username} (Already preserved as master peer)")
-                break
-        
-        if is_preserved:
-            continue
-
-        print(f"  Restoring: {username} ({user['assigned_ip']})")
-        peer_block = f"\n[Peer]\n# {username}\nPublicKey = {user['public_key']}\nAllowedIPs = {user['assigned_ip']}/32\n"
-        
-        with open(WG_CONFIG_PATH, 'a') as f:
+            
+        # Write DB users (Skipping duplicates)
+        count = 0
+        for username, user in active_users.items():
+            # Check if this user is already preserved (by key)
+            is_preserved = False
+            for p in preserved_peers:
+                if user['public_key'] in p:
+                    is_preserved = True
+                    break
+            
+            if is_preserved:
+                print(f"  Skipping {username} (Exist in preserved peers)")
+                continue
+                
+            # Check IP Conflict
+            user_ip = user['assigned_ip']
+            if user_ip in used_ips:
+                print(f"  ⚠️ CONFLICT: IP {user_ip} is taken by Master User!")
+                # Simple fix: Allocate next free IP? 
+                # For safety in this script, we just SKIP adding it to config to prevent breakage.
+                print(f"  ❌ Skipping {username} to prevent IP collision. Please regenerate this user in Dashboard.")
+                continue
+                
+            # Add to config
+            print(f"  Restoring: {username} ({user_ip})")
+            peer_block = f"\n[Peer]\n# {username}\nPublicKey = {user['public_key']}\nAllowedIPs = {user_ip}/32\n"
             f.write(peer_block)
-        count += 1
+            count += 1
+            
+    print(f"Rebuilt config: Interface optimized, {len(preserved_peers)} preserved, {count} restored.")
 
-
-    print(f"Restored {count} peers.")
-
-    # 6. Reload WireGuard
+    # 7. Reload
     print("Reloading WireGuard...")
     success, err = await reload_wireguard()
     if success:
         print("✅ WireGuard Reload Successful!")
-        print("System is consistent.")
     else:
         print(f"❌ Reload Failed: {err}")
-        print("Restoring backup...")
-        shutil.copy2(backup, WG_CONFIG_PATH)
-
-if __name__ == "__main__":
-    if os.geteuid() != 0:
-        print("Error: Must run as root")
-        exit(1)
-    asyncio.run(heal_system())
