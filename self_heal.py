@@ -81,10 +81,10 @@ ListenPort = 51820
 PrivateKey = {svr_priv_key}
 
 # Runbook Section 6: Firewall, NAT & Forwarding
-# - Forward traffic from wg0 to WAN
+# - Forward traffic from wg0 to WAN (Insert at TOP to bypass Docker)
 # - Allow established return traffic
 # - Masquerade outbound traffic
-PostUp = iptables -A FORWARD -i wg0 -o {start_interface} -j ACCEPT; iptables -A FORWARD -i {start_interface} -o wg0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; iptables -t nat -A POSTROUTING -s 10.50.0.0/24 -o {start_interface} -j MASQUERADE
+PostUp = iptables -I FORWARD 1 -i wg0 -o {start_interface} -j ACCEPT; iptables -I FORWARD 1 -i {start_interface} -o wg0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; iptables -t nat -A POSTROUTING -s 10.50.0.0/24 -o {start_interface} -j MASQUERADE
 PostDown = iptables -D FORWARD -i wg0 -o {start_interface} -j ACCEPT; iptables -D FORWARD -i {start_interface} -o wg0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; iptables -t nat -D POSTROUTING -s 10.50.0.0/24 -o {start_interface} -j MASQUERADE
 """
 
