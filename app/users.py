@@ -113,7 +113,7 @@ async def create_vpn_user(
         
         # Add to WireGuard config FIRST (this is the critical operation)
         # If this fails, nothing is saved to DB
-        await add_peer_to_config(public_key, assigned_ip)
+        await add_peer_to_config(public_key, assigned_ip, username)
         
         # Now save to database (WireGuard already has the peer)
         await create_user(username, public_key, assigned_ip)
@@ -197,7 +197,7 @@ async def toggle_user_status(
             return {"message": f"User {username} disabled", "status": "disabled"}
         else:
             # Re-enable: add back to config
-            await add_peer_to_config(user['public_key'], user['assigned_ip'])
+            await add_peer_to_config(user['public_key'], user['assigned_ip'], username)
             await update_user_status(username, 'active')
             log_user_enabled(username, admin)
             return {"message": f"User {username} enabled", "status": "active"}
@@ -307,7 +307,7 @@ async def sync_all_users(admin: str = Depends(get_current_admin)):
     for user in users:
         if user['status'] == 'active':
             try:
-                if not peer_exists_in_config(user['public_key']):
+                if (time.time() - peer_data['latest_handshake']) < 600:_config(user['public_key']):
                     await add_peer_to_config(user['public_key'], user['assigned_ip'])
                     synced_count += 1
             except Exception as e:

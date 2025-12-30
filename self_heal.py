@@ -31,6 +31,12 @@ async def heal_system():
     # 1. Detect Interface
     start_interface = get_default_interface()
     print(f"Detected WAN Interface: {start_interface}")
+    
+    # 1.5 Enable IP Forwarding (Kernel)
+    print("Enabling IPv4 Forwarding...")
+    subprocess.run(["sysctl", "-w", "net.ipv4.ip_forward=1"], check=False)
+    with open('/proc/sys/net/ipv4/ip_forward', 'w') as f:
+        f.write('1')
 
     # 2. Load users from DB (Source of Truth)
     print(f"Reading Database: {DB_PATH}")

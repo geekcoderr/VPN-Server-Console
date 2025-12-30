@@ -208,12 +208,15 @@ def peer_exists_in_config(public_key: str) -> bool:
         return False
 
 
-async def add_peer_to_config(public_key: str, allowed_ip: str) -> None:
+async def add_peer_to_config(public_key: str, allowed_ip: str, comment: str = None) -> None:
     """
     Add a new [Peer] block to wg0.conf.
     Uses file locking and atomic writes.
     """
-    peer_block = f"""[Peer]
+    peer_block = f"""[Peer]"""
+    if comment:
+        peer_block += f"""\n# {comment}"""
+    peer_block += f"""
 PublicKey = {public_key}
 AllowedIPs = {allowed_ip}/32"""
     
