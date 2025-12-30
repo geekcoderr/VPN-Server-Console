@@ -24,7 +24,7 @@ VPN_IP_END = 254      # Last client IP: 10.50.0.254
 VPN_SERVER_ENDPOINT = "wg.nishantmaheshwari.online:51820"
 
 # Client config defaults
-CLIENT_DNS = "1.1.1.1"
+CLIENT_DNS = "8.8.8.8"
 CLIENT_MTU = 1280
 PERSISTENT_KEEPALIVE = 25
 
