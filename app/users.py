@@ -235,8 +235,9 @@ async def get_user_config(
         await add_peer_to_config(public_key, user['assigned_ip'])
         
         # Update database with new public key
-        from .database import get_db
-        async with await get_db() as db:
+        from .database import DB_PATH
+        import aiosqlite
+        async with aiosqlite.connect(DB_PATH) as db:
             await db.execute(
                 "UPDATE users SET public_key = ? WHERE username = ?",
                 (public_key, username)
