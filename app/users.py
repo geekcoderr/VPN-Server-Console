@@ -291,3 +291,28 @@ async def sync_user_to_config(
         
     except WireGuardError as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/sync_all")
+async def sync_all_users(admin: str = Depends(get_current_admin)):
+    """
+    Sync ALL active users from DB to WireGuard config.
+    Useful if multiple users are missing from wg0.conf.
+    """
+    users = await get_all_users()
+    synced_count = 0
+    errors = []
+    
+    for user in users:
+        if user['status'] == 'active':
+            try:
+                if not peer_exists_in_config(user['public_key']):
+                    await add_peer_to_config(user['public_key'], user['assigned_ip'])
+                    synced_count += 1
+            except Exception as e:
+                errors.append(f"{user['username']}: {str(e)}")
+    
+    return {
+        "message": f"Synced {synced_count} users",
+        "errors": errors if errors else None
+    }

@@ -1,6 +1,5 @@
 """
 Configuration for VPN Control Plane.
-All configurable values in one place.
 """
 import os
 from pathlib import Path
@@ -20,10 +19,9 @@ VPN_SERVER_IP = "10.50.0.1"
 VPN_IP_START = 2      # First client IP: 10.50.0.2
 VPN_IP_END = 254      # Last client IP: 10.50.0.254
 
-# Server Endpoint - your VPN server's public address
-# This is what clients use to connect (WireGuard port, not HTTP)
-VPN_SERVER_ENDPOINT = os.getenv("VPN_ENDPOINT", "vpn.nishantmaheshwari.online:51820")
-VPN_SERVER_PORT = 51820
+# Server Endpoint
+# FORCED to your domain. No environment variable fallback to avoid confusion.
+VPN_SERVER_ENDPOINT = "vpn.nishantmaheshwari.online:51820"
 
 # Client config defaults
 CLIENT_DNS = "1.1.1.1"
