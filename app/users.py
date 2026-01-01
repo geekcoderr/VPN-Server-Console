@@ -256,8 +256,13 @@ async def get_user_config(
         # Get server public key
         server_public_key = await get_server_public_key()
         
-        # Generate client config
-        client_config = generate_client_config(private_key, user['assigned_ip'], server_public_key)
+        # Generate client config using the stored client_os
+        client_config = generate_client_config(
+            private_key, 
+            user['assigned_ip'], 
+            server_public_key,
+            client_os=user.get('client_os', 'android')
+        )
         
         # Generate QR
         qr_code = generate_qr_data_uri(client_config)
