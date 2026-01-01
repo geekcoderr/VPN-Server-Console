@@ -28,6 +28,15 @@ async def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+
+        # Migration: Check if client_os column exists (for existing databases)
+        cursor = await db.execute("PRAGMA table_info(users)")
+        columns = await cursor.fetchall()
+        column_names = [col[1] for col in columns]
+        
+        if 'client_os' not in column_names:
+            await db.execute("ALTER TABLE users ADD COLUMN client_os TEXT DEFAULT 'android'")
+            await db.commit()
         
         # Admin table - single admin user
         await db.execute("""
