@@ -874,47 +874,63 @@
             <p style="color: var(--text-dim); margin-bottom: 40px;">The node is now an active member of the VPN mesh.
                 Capture the secure credentials below.</p>
 
-            <div style="display: flex; gap: 56px; align-items: start;">
-                <div style="flex: 0 0 400px; text-align: center;">
+            <div style="display: flex; gap: 40px; align-items: start; flex-wrap: wrap;">
+                <div style="flex: 0 0 320px; text-align: center; margin: 0 auto;">
                     <div
-                        style="background: white; padding: 20px; border-radius: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
-                        <img id="provisionQr" alt="Secure Pairing QR" title="Click to enlarge">
+                        style="background: white; padding: 16px; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
+                        <img id="provisionQr" alt="Secure Pairing QR" title="Scan with WireGuard"
+                            style="width: 100%; height: auto; display: block;">
                     </div>
                     <div
-                        style="margin-top: 24px; display: flex; align-items: center; justify-content: center; gap: 12px; color: var(--text-main); font-weight: 700; font-size: 14px;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        style="margin-top: 20px; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--text-main); font-weight: 700; font-size: 13px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2.5">
                             <rect x="5" y="5" width="14" height="14" rx="1" />
                             <path d="M9 11h2v2H9zM13 11h2v2h-2zM9 15h2v2H9zM13 13h2v2h-2zM15 15h2v2h-2z" />
                         </svg>
-                        SCAN WITH WIREGUARD APP
+                        SCAN WITH WIREGUARD
                     </div>
                 </div>
-                <div style="flex: 1;">
+                <div style="flex: 1; min-width: 300px;">
                     <div
-                        style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
                         <label
                             style="font-size: 11px; color: var(--text-dim); font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Raw
-                            Configuration Identity</label>
-                        <button class="btn-create" style="padding: 6px 12px; font-size: 11px; box-shadow: none;"
-                            onclick="copyProvision()">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2.5">
-                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                            </svg>
-                            Copy Code
-                        </button>
+                            Configuration</label>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn-create"
+                                style="padding: 6px 12px; font-size: 11px; box-shadow: none; background: var(--glass-hover); border: 1px solid var(--glass-border);"
+                                onclick="downloadConfig()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4" />
+                                    <polyline points="7 10 12 15 17 10" />
+                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                </svg>
+                                Download
+                            </button>
+                            <button class="btn-create" style="padding: 6px 12px; font-size: 11px; box-shadow: none;"
+                                onclick="copyProvision()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                </svg>
+                                Copy Code
+                            </button>
+                        </div>
                     </div>
                     <pre id="provisionRaw"
-                        style="background: #000; color: #10b981; padding: 24px; border-radius: 20px; font-size: 13px; height: 360px; overflow-y: auto; border: 1px solid var(--glass-border); font-family: 'Inter', monospace; line-height: 1.6;"></pre>
+                        style="background: #000; color: #10b981; padding: 20px; border-radius: 16px; font-size: 12px; height: 320px; overflow-y: auto; border: 1px solid var(--glass-border); font-family: 'Inter', monospace; line-height: 1.5;"></pre>
                 </div>
             </div>
-
-            <button class="btn-logout"
-                style="width: 100%; margin-top: 48px; border-color: var(--glass-border); color: var(--text-dim);"
-                onclick="closeModal('successModal')">Close Terminal Session</button>
         </div>
+    </div>
+
+    <button class="btn-logout"
+        style="width: 100%; margin-top: 48px; border-color: var(--glass-border); color: var(--text-dim);"
+        onclick="closeModal('successModal')">Close Terminal Session</button>
+    </div>
     </div>
 
     <!-- Custom Interaction Modal -->
@@ -1207,6 +1223,19 @@
         function logout() { fetch('/auth/logout', { method: 'POST' }).then(() => window.location.href = "/login.html"); }
         function showModal(id) { document.getElementById(id).classList.add('show'); }
         function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+        function downloadConfig() {
+            const raw = document.getElementById('provisionRaw').innerText;
+            const blob = new Blob([raw], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const name = document.getElementById('newUsername').value || 'vpn-config';
+            a.href = url;
+            a.download = `${name}.conf`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+            triggerToast("Downloading configuration file...");
+        }
+
         function copyProvision() {
             const raw = document.getElementById('provisionRaw').innerText;
             navigator.clipboard.writeText(raw).then(() => triggerToast("Identity Vector Copied!"));

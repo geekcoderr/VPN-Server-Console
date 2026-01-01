@@ -133,10 +133,25 @@ PostDown = iptables -D FORWARD -i wg0 -o {start_interface} -j ACCEPT; iptables -
             
     print(f"Rebuilt config: Interface optimized, {len(preserved_peers)} preserved, {count} restored.")
 
-    # 7. Reload
-    print("Reloading WireGuard...")
+    # 7. Reload & Apply Rules
+    print("Reloading WireGuard & Applying Firewall Rules...")
+    
+    # Actually run the NAT commands once during healing to ensure they are active immediately
+    print(f"  Enforcing NAT on {start_interface}...")
+    try:
+        # Forwarding rules (using -I to ensure they are at the top)
+        subprocess.run(["iptables", "-I", "FORWARD", "1", "-i", "wg0", "-o", start_interface, "-j", "ACCEPT"], check=False)
+        subprocess.run(["iptables", "-I", "FORWARD", "1", "-i", start_interface, "-o", "wg0", "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT"], check=False)
+        # MASQUERADE rule
+        subprocess.run(["iptables", "-t", "nat", "-A", "POSTROUTING", "-s", "10.50.0.0/24", "-o", start_interface, "-j", "MASQUERADE"], check=False)
+        print("  ✅ Firewall rules applied to kernel.")
+    except Exception as e:
+        print(f"  ⚠️ Warning: Failed to apply some firewall rules: {e}")
+
     success, err = await reload_wireguard()
     if success:
         print("✅ WireGuard Reload Successful!")
+        print("\n--- HEALING COMPLETE ---")
+        print("Clients should now have internet access. If not, try: sudo systemctl restart vpn-control")
     else:
         print(f"❌ Reload Failed: {err}")
