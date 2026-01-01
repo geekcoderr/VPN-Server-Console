@@ -146,11 +146,19 @@ PostDown = iptables -D FORWARD -i wg0 -o {start_interface} -j ACCEPT; iptables -
     # Actually run the NAT commands once during healing to ensure they are active immediately
     print(f"  Enforcing NAT and Forwarding on {start_interface}...")
     try:
+        # Step 0: Flush existing rules to prevent duplicates
+        print("  Cleaning old rules...")
+        subprocess.run(["iptables", "-D", "FORWARD", "-i", "wg0", "-o", start_interface, "-j", "ACCEPT"], check=False)
+        subprocess.run(["iptables", "-D", "FORWARD", "-i", start_interface, "-o", "wg0", "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT"], check=False)
+        subprocess.run(["iptables", "-t", "nat", "-D", "POSTROUTING", "-s", "10.50.0.0/24", "-o", start_interface, "-j", "MASQUERADE"], check=False)
+
         # Step 6: Forwarding rules (using -I to ensure priority over Docker)
+        print("  Injecting high-priority forwarding...")
         subprocess.run(["iptables", "-I", "FORWARD", "1", "-i", "wg0", "-o", start_interface, "-j", "ACCEPT"], check=False)
         subprocess.run(["iptables", "-I", "FORWARD", "1", "-i", start_interface, "-o", "wg0", "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT"], check=False)
         
         # Step 5: MASQUERADE rule
+        print("  Enabling MASQUERADE...")
         subprocess.run(["iptables", "-t", "nat", "-I", "POSTROUTING", "1", "-s", "10.50.0.0/24", "-o", start_interface, "-j", "MASQUERADE"], check=False)
         
         # Persist Rules (Runbook Step 6)
