@@ -1,132 +1,116 @@
-"""
-Database module for VPN Control Plane.
-Uses SQLite with async support via aiosqlite.
-"""
-import aiosqlite
-import os
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import String, Integer, DateTime, Text, BigInteger, func
 from datetime import datetime
-from pathlib import Path
+from typing import Optional
+import os
 
-# Database path - relative to project root
-DB_PATH = Path(__file__).parent.parent / "data" / "users.db"
+from .config import DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME
 
+# MySQL Async URL
+DATABASE_URL = f"mysql+asyncmy://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+
+engine = create_async_engine(DATABASE_URL, echo=False, pool_pre_ping=True)
+AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+
+class Base(DeclarativeBase):
+    pass
+
+class Admin(Base):
+    __tablename__ = "admin"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    username: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(Text, nullable=False)
+
+class User(Base):
+    __tablename__ = "users"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    username: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    public_key: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    assigned_ip: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    client_os: Mapped[str] = mapped_column(String(50), default="android")
+    status: Mapped[str] = mapped_column(String(20), default="active")
+    
+    # Advanced Tracking
+    total_rx: Mapped[int] = mapped_column(BigInteger, default=0)
+    total_tx: Mapped[int] = mapped_column(BigInteger, default=0)
+    last_login: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
 
 async def init_db():
-    """Initialize database with required tables."""
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    
-    async with aiosqlite.connect(DB_PATH) as db:
-        # Users table - stores VPN user metadata
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
-                public_key TEXT UNIQUE NOT NULL,
-                assigned_ip TEXT UNIQUE NOT NULL,
-                client_os TEXT DEFAULT 'android' CHECK(client_os IN ('android', 'linux', 'ios', 'windows', 'macos')),
-                status TEXT DEFAULT 'active' CHECK(status IN ('active', 'disabled')),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-
-        # Migration: Check if client_os column exists (for existing databases)
-        cursor = await db.execute("PRAGMA table_info(users)")
-        columns = await cursor.fetchall()
-        column_names = [col[1] for col in columns]
-        
-        if 'client_os' not in column_names:
-            await db.execute("ALTER TABLE users ADD COLUMN client_os TEXT DEFAULT 'android'")
-            await db.commit()
-        
-        # Admin table - single admin user
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS admin (
-                id INTEGER PRIMARY KEY CHECK (id = 1),
-                username TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL
-            )
-        """)
-        
-        await db.commit()
-
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
 async def get_db():
-    """Get database connection."""
-    return await aiosqlite.connect(DB_PATH)
+    async with AsyncSessionLocal() as session:
+        yield session
 
-
-async def get_all_users():
-    """Fetch all VPN users."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        cursor = await db.execute(
-            "SELECT id, username, public_key, assigned_ip, client_os, status, created_at FROM users ORDER BY created_at DESC"
-        )
-        rows = await cursor.fetchall()
-        return [dict(row) for row in rows]
-
-
-async def get_user_by_username(username: str):
-    """Fetch a single user by username."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        cursor = await db.execute(
-            "SELECT * FROM users WHERE username = ?", (username,)
-        )
-        row = await cursor.fetchone()
-        return dict(row) if row else None
-
-
-async def create_user(username: str, public_key: str, assigned_ip: str, client_os: str = 'android'):
-    """Insert a new VPN user."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(
-            "INSERT INTO users (username, public_key, assigned_ip, client_os) VALUES (?, ?, ?, ?)",
-            (username, public_key, assigned_ip, client_os)
-        )
-        await db.commit()
-
-
-async def update_user_status(username: str, status: str):
-    """Update user status (active/disabled)."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(
-            "UPDATE users SET status = ? WHERE username = ?",
-            (status, username)
-        )
-        await db.commit()
-
-
-async def delete_user(username: str):
-    """Delete a user from database."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("DELETE FROM users WHERE username = ?", (username,))
-        await db.commit()
-
-
-async def get_used_ips():
-    """Get all assigned IP addresses."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        cursor = await db.execute("SELECT assigned_ip FROM users")
-        rows = await cursor.fetchall()
-        return {row[0] for row in rows}
-
+from sqlalchemy import select, update, delete
 
 async def get_admin():
-    """Get admin user."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        cursor = await db.execute("SELECT * FROM admin WHERE id = 1")
-        row = await cursor.fetchone()
-        return dict(row) if row else None
-
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(Admin).filter(Admin.id == 1))
+        admin = result.scalar_one_or_none()
+        return {"id": admin.id, "username": admin.username, "password_hash": admin.password_hash} if admin else None
 
 async def create_admin(username: str, password_hash: str):
-    """Create or update admin user."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(
-            """INSERT INTO admin (id, username, password_hash) VALUES (1, ?, ?)
-               ON CONFLICT(id) DO UPDATE SET username = ?, password_hash = ?""",
-            (username, password_hash, username, password_hash)
-        )
-        await db.commit()
+    async with AsyncSessionLocal() as session:
+        admin = Admin(id=1, username=username, password_hash=password_hash)
+        await session.merge(admin)
+        await session.commit()
+
+async def get_all_users():
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(User).order_by(User.created_at.desc()))
+        users = result.scalars().all()
+        return [{
+            "id": u.id, 
+            "username": u.username, 
+            "public_key": u.public_key, 
+            "assigned_ip": u.assigned_ip,
+            "client_os": u.client_os,
+            "status": u.status,
+            "created_at": u.created_at.isoformat(),
+            "total_rx": u.total_rx,
+            "total_tx": u.total_tx,
+            "last_login": u.last_login.isoformat() if u.last_login else None
+        } for u in users]
+
+async def get_user_by_username(username: str):
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(User).filter(User.username == username))
+        u = result.scalar_one_or_none()
+        if not u: return None
+        return {
+            "id": u.id, 
+            "username": u.username, 
+            "public_key": u.public_key, 
+            "assigned_ip": u.assigned_ip,
+            "client_os": u.client_os,
+            "status": u.status,
+            "created_at": u.created_at.isoformat(),
+            "total_rx": u.total_rx,
+            "total_tx": u.total_tx,
+            "last_login": u.last_login.isoformat() if u.last_login else None
+        }
+
+async def create_user(username: str, public_key: str, assigned_ip: str, client_os: str = 'android'):
+    async with AsyncSessionLocal() as session:
+        user = User(username=username, public_key=public_key, assigned_ip=assigned_ip, client_os=client_os)
+        session.add(user)
+        await session.commit()
+
+async def update_user_status(username: str, status: str):
+    async with AsyncSessionLocal() as session:
+        await session.execute(update(User).where(User.username == username).values(status=status))
+        await session.commit()
+
+async def delete_user(username: str):
+    async with AsyncSessionLocal() as session:
+        await session.execute(delete(User).where(User.username == username))
+        await session.commit()
+
+async def get_used_ips():
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(User.assigned_ip))
+        return {row[0] for row in result.all()}

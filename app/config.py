@@ -36,5 +36,12 @@ DEFAULT_ADMIN_PASS = "ChangeMeNow123!"
 SESSION_SECRET_KEY = os.getenv("SESSION_SECRET", "change-this-in-production-use-openssl-rand-hex-32")
 SESSION_MAX_AGE = 86400  # 24 hours
 
+# MySQL Configuration
+DB_HOST = os.getenv("DB_HOST", "127.0.0.1")  # Connect to container port 3306 mapped to host or bridge
+DB_PORT = int(os.getenv("DB_PORT", "3306"))
+DB_USER = os.getenv("DB_USER", "vpn_user")
+DB_PASS = os.getenv("DB_PASS", "vpn_pass")
+DB_NAME = os.getenv("DB_NAME", "vpn_control")
+
 # Audit log
 AUDIT_LOG_PATH = DATA_DIR / "audit.log"

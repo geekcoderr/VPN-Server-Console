@@ -114,6 +114,12 @@ async def logout():
     return response
 
 
+@router.get("/me")
+async def get_me(admin: str = Depends(get_current_admin)):
+    """Get current admin info."""
+    return {"username": admin}
+
+
 @router.post("/change-password")
 async def change_password(
     request: Request,

@@ -14,7 +14,10 @@ from .database import (
     update_user_status,
     delete_user as db_delete_user,
     get_used_ips,
+    AsyncSessionLocal,
+    User
 )
+from sqlalchemy import update
 from .wg import (
     generate_keypair,
     get_server_public_key,
@@ -244,12 +247,9 @@ async def get_user_config(
         await add_peer_to_config(public_key, user['assigned_ip'])
         
         # Update database with new public key
-        from .database import DB_PATH
-        import aiosqlite
-        async with aiosqlite.connect(DB_PATH) as db:
+        async with AsyncSessionLocal() as db:
             await db.execute(
-                "UPDATE users SET public_key = ? WHERE username = ?",
-                (public_key, username)
+                update(User).where(User.username == username).values(public_key=public_key)
             )
             await db.commit()
         
