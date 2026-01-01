@@ -102,13 +102,14 @@ ListenPort = 51820
 PrivateKey = {svr_priv_key}
 
 # Runbook Section 6: Firewall, NAT & Forwarding
+# - Hole-punch 51820 UDP (Local Firewall)
 # - Forward traffic from wg0 to WAN (Insert at TOP to bypass Docker)
 # - Allow established return traffic
 # - Masquerade outbound traffic
 # - MSS Clamping (Crucial for AWS/Fragmented Networks)
 MTU = 1280
-PostUp = iptables -I FORWARD 1 -i wg0 -o {start_interface} -j ACCEPT; iptables -I FORWARD 1 -i {start_interface} -o wg0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; iptables -t nat -I POSTROUTING 1 -s 10.50.0.0/24 -o {start_interface} -j MASQUERADE; iptables -t mangle -I FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
-PostDown = iptables -D FORWARD -i wg0 -o {start_interface} -j ACCEPT; iptables -D FORWARD -i {start_interface} -o wg0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; iptables -t nat -D POSTROUTING -s 10.50.0.0/24 -o {start_interface} -j MASQUERADE; iptables -t mangle -D FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
+PostUp = iptables -I INPUT 1 -p udp --dport 51820 -j ACCEPT; iptables -I FORWARD 1 -i wg0 -o {start_interface} -j ACCEPT; iptables -I FORWARD 1 -i {start_interface} -o wg0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; iptables -t nat -I POSTROUTING 1 -s 10.50.0.0/24 -o {start_interface} -j MASQUERADE; iptables -t mangle -I FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
+PostDown = iptables -D INPUT -p udp --dport 51820 -j ACCEPT; iptables -D FORWARD -i wg0 -o {start_interface} -j ACCEPT; iptables -D FORWARD -i {start_interface} -o wg0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; iptables -t nat -D POSTROUTING -s 10.50.0.0/24 -o {start_interface} -j MASQUERADE; iptables -t mangle -D FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
 """
 
     # 6. Write New Config
@@ -160,18 +161,27 @@ PostDown = iptables -D FORWARD -i wg0 -o {start_interface} -j ACCEPT; iptables -
     try:
         # Step 0: Flush existing rules to prevent duplicates
         print("  Cleaning old rules...")
+        subprocess.run(["iptables", "-D", "INPUT", "-p", "udp", "--dport", "51820", "-j", "ACCEPT"], check=False)
         subprocess.run(["iptables", "-D", "FORWARD", "-i", "wg0", "-o", start_interface, "-j", "ACCEPT"], check=False)
         subprocess.run(["iptables", "-D", "FORWARD", "-i", start_interface, "-o", "wg0", "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT"], check=False)
         subprocess.run(["iptables", "-t", "nat", "-D", "POSTROUTING", "-s", "10.50.0.0/24", "-o", start_interface, "-j", "MASQUERADE"], check=False)
         subprocess.run(["iptables", "-t", "mangle", "-D", "FORWARD", "-p", "tcp", "--tcp-flags", "SYN,RST", "SYN", "-j", "TCPMSS", "--clamp-mss-to-pmtu"], check=False)
 
+        # Step 0.5: Check UFW
+        print("  Checking UFW Status...")
+        ufw_check = subprocess.run(["ufw", "status"], capture_output=True, text=True)
+        if "active" in ufw_check.stdout:
+            print("  ⚠️ UFW is ACTIVE. Ensuring 51820/udp is allowed...")
+            subprocess.run(["ufw", "allow", "51820/udp"], check=False)
+
         # Step 6: Forwarding rules (using -I to ensure priority over Docker)
-        print("  Injecting high-priority forwarding...")
+        print("  Punching holes in Local Firewall (INPUT/FORWARD)...")
+        subprocess.run(["iptables", "-I", "INPUT", "1", "-p", "udp", "--dport", "51820", "-m", "comment", "--comment", "VPN Handshake", "-j", "ACCEPT"], check=False)
         subprocess.run(["iptables", "-I", "FORWARD", "1", "-i", "wg0", "-o", start_interface, "-j", "ACCEPT"], check=False)
         subprocess.run(["iptables", "-I", "FORWARD", "1", "-i", start_interface, "-o", "wg0", "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT"], check=False)
         
         # Step 5: MASQUERADE rule
-        print("  Enabling MASQUERADE...")
+        print("  Enabling NAT Masquerade...")
         subprocess.run(["iptables", "-t", "nat", "-I", "POSTROUTING", "1", "-s", "10.50.0.0/24", "-o", start_interface, "-j", "MASQUERADE"], check=False)
         
         # Step 7: TCP MSS Clamping (The Fix for No-Internet in AWS)
