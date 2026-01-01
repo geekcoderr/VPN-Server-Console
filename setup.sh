@@ -21,8 +21,12 @@ NGINX_CONF="/etc/nginx/sites-available/vpn-control"
 
 echo ""
 echo "[1/6] Installing dependencies..."
-apt update
 apt install -y python3 python3-venv python3-pip nginx certbot python3-certbot-nginx
+
+# Enable IP Forwarding permanently
+echo "Enabling IPv4 Forwarding..."
+sysctl -w net.ipv4.ip_forward=1
+echo "net.ipv4.ip_forward=1" | tee -a /etc/sysctl.conf || true
 
 echo ""
 echo "[2/6] Setting up application..."

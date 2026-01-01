@@ -598,6 +598,65 @@
             }
         }
 
+        /* Custom Alert/Confirm Modals */
+        #customModal {
+            z-index: 3000;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 16px;
+            margin-top: 32px;
+        }
+
+        .btn-modal {
+            flex: 1;
+            padding: 14px;
+            border-radius: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            transition: 0.3s;
+        }
+
+        .btn-modal-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-modal-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px var(--accent-glow);
+        }
+
+        .btn-modal-secondary {
+            background: var(--glass-hover);
+            border: 1px solid var(--glass-border);
+            color: var(--text-dim);
+        }
+
+        .btn-modal-danger {
+            background: var(--error);
+            color: white;
+        }
+
+        /* Large QR Modal Adjustments */
+        #successModal .modal {
+            max-width: 900px;
+            padding: 48px;
+        }
+
+        #provisionQr {
+            width: 400px !important;
+            height: 400px !important;
+            transition: all 0.3s;
+            cursor: zoom-in;
+        }
+
+        #provisionQr:active {
+            transform: scale(1.1);
+        }
+
         /* Toasts */
         #toast {
             position: fixed;
@@ -610,7 +669,7 @@
             box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
             font-weight: 700;
             display: none;
-            z-index: 3000;
+            z-index: 4000;
             animation: slideUp 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
         }
 
@@ -810,40 +869,68 @@
 
     <!-- Handshake Success Modal -->
     <div class="overlay" id="successModal">
-        <div class="modal" style="max-width: 650px;">
-            <h3>Node Successfully Deployed</h3>
-            <p style="color: var(--text-dim); margin-bottom: 32px;">The node is now an active member of the VPN mesh.
+        <div class="modal">
+            <h3 style="font-size: 28px; margin-bottom: 8px;">Node Successfully Deployed</h3>
+            <p style="color: var(--text-dim); margin-bottom: 40px;">The node is now an active member of the VPN mesh.
                 Capture the secure credentials below.</p>
 
-            <div style="display: flex; gap: 40px;">
-                <div style="flex: 1; text-align: center;">
+            <div style="display: flex; gap: 56px; align-items: start;">
+                <div style="flex: 0 0 400px; text-align: center;">
                     <div
-                        style="background: white; padding: 15px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-                        <img id="provisionQr" style="width: 100%; display: block;">
+                        style="background: white; padding: 20px; border-radius: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
+                        <img id="provisionQr" alt="Secure Pairing QR" title="Click to enlarge">
                     </div>
-                    <p style="margin-top: 16px; font-size: 11px; color: var(--text-dim); font-weight: 600;">SCAN WITH
-                        WIREGUARD</p>
-                </div>
-                <div style="flex: 1.5;">
-                    <label
-                        style="font-size: 11px; color: var(--text-dim); font-weight: 700; text-transform: uppercase;">Raw
-                        Configuration</label>
-                    <pre id="provisionRaw"
-                        style="background: #000; color: #10b981; padding: 20px; border-radius: 16px; font-size: 12px; height: 220px; overflow-y: auto; margin: 12px 0; border: 1px solid var(--glass-border);"></pre>
-                    <button class="btn-create" style="width: 100%; justify-content: center;" onclick="copyProvision()">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    <div
+                        style="margin-top: 24px; display: flex; align-items: center; justify-content: center; gap: 12px; color: var(--text-main); font-weight: 700; font-size: 14px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2.5">
-                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                            <rect x="5" y="5" width="14" height="14" rx="1" />
+                            <path d="M9 11h2v2H9zM13 11h2v2h-2zM9 15h2v2H9zM13 13h2v2h-2zM15 15h2v2h-2z" />
                         </svg>
-                        Copy Identity
-                    </button>
+                        SCAN WITH WIREGUARD APP
+                    </div>
+                </div>
+                <div style="flex: 1;">
+                    <div
+                        style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <label
+                            style="font-size: 11px; color: var(--text-dim); font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Raw
+                            Configuration Identity</label>
+                        <button class="btn-create" style="padding: 6px 12px; font-size: 11px; box-shadow: none;"
+                            onclick="copyProvision()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                            </svg>
+                            Copy Code
+                        </button>
+                    </div>
+                    <pre id="provisionRaw"
+                        style="background: #000; color: #10b981; padding: 24px; border-radius: 20px; font-size: 13px; height: 360px; overflow-y: auto; border: 1px solid var(--glass-border); font-family: 'Inter', monospace; line-height: 1.6;"></pre>
                 </div>
             </div>
 
             <button class="btn-logout"
-                style="width: 100%; margin-top: 32px; border-color: var(--glass-border); color: var(--text-dim);"
-                onclick="closeModal('successModal')">Dismiss Terminal</button>
+                style="width: 100%; margin-top: 48px; border-color: var(--glass-border); color: var(--text-dim);"
+                onclick="closeModal('successModal')">Close Terminal Session</button>
+        </div>
+    </div>
+
+    <!-- Custom Interaction Modal -->
+    <div class="overlay" id="customModal">
+        <div class="modal" style="max-width: 450px; padding: 48px; text-align: center;">
+            <div id="modalIcon"
+                style="width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
+                <!-- Vector injected here -->
+            </div>
+            <h3 id="modalTitle" style="font-size: 24px; margin-bottom: 12px;">Confirm Action</h3>
+            <p id="modalBody" style="color: var(--text-dim); font-size: 15px; margin-bottom: 32px;"></p>
+            <div class="modal-buttons">
+                <button id="modalBtnSecondary" class="btn-modal btn-modal-secondary"
+                    onclick="closeModal('customModal')">Cancel</button>
+                <button id="modalBtnPrimary" class="btn-modal btn-modal-primary">Proceed</button>
+            </div>
         </div>
     </div>
 
@@ -992,6 +1079,40 @@
             document.getElementById('activeSessions').innerText = activeNodes;
         }
 
+        /** PREMIUM CUSTOM MODALS **/
+        function triggerPremiumModal({ title, body, icon, btnText, type, onConfirm }) {
+            const modal = document.getElementById('customModal');
+            const iconBox = document.getElementById('modalIcon');
+            const titleEl = document.getElementById('modalTitle');
+            const bodyEl = document.getElementById('modalBody');
+            const pBtn = document.getElementById('modalBtnPrimary');
+            const sBtn = document.getElementById('modalBtnSecondary');
+
+            titleEl.innerText = title;
+            bodyEl.innerText = body;
+            pBtn.innerText = btnText || 'Confirm';
+            pBtn.className = `btn-modal ${type === 'danger' ? 'btn-modal-danger' : 'btn-modal-primary'}`;
+
+            // Icon Handling
+            if (type === 'danger') {
+                iconBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                iconBox.innerHTML = `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
+            } else if (type === 'success') {
+                iconBox.style.background = 'rgba(16, 185, 129, 0.15)';
+                iconBox.innerHTML = `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
+            } else {
+                iconBox.style.background = 'rgba(99, 102, 241, 0.15)';
+                iconBox.innerHTML = `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+            }
+
+            pBtn.onclick = () => {
+                closeModal('customModal');
+                if (onConfirm) onConfirm();
+            };
+
+            showModal('customModal');
+        }
+
         async function processProvision() {
             const name = document.getElementById('newUsername').value;
             if (!name) return triggerToast("Label is required for identity mapping.");
@@ -1010,7 +1131,12 @@
                 triggerToast("Identity Injected Successfully");
             } else {
                 const err = await res.json();
-                triggerToast(err.detail || "Provision Interrupted");
+                triggerPremiumModal({
+                    title: "Provision Error",
+                    body: err.detail || "The system encountered a logic error during deployment.",
+                    type: "danger",
+                    btnText: "Dismiss"
+                });
             }
         }
 
@@ -1023,12 +1149,19 @@
         }
 
         async function revokeNode(name) {
-            if (!confirm(`TEMPORARY: Revoke all peering for node ${name}?`)) return;
-            const res = await fetch(`/api/users/${name}`, { method: 'DELETE' });
-            if (res.ok) {
-                loadNodes();
-                triggerToast("Node Revoked from Mesh.");
-            }
+            triggerPremiumModal({
+                title: "Revoke Access?",
+                body: `This will permanently disconnect ${name} and invalidate their current configuration. This action cannot be undone.`,
+                type: "danger",
+                btnText: "Confirm Revocation",
+                onConfirm: async () => {
+                    const res = await fetch(`/api/users/${name}`, { method: 'DELETE' });
+                    if (res.ok) {
+                        loadNodes();
+                        triggerToast("Node Revoked from Mesh.");
+                    }
+                }
+            });
         }
 
         async function getNodeConfig(name) {
