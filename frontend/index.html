@@ -505,6 +505,30 @@
             transform: scale(1);
         }
 
+        .modal-close {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--glass-hover);
+            border: 1px solid var(--glass-border);
+            color: var(--text-dim);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.3s;
+        }
+
+        .modal-close:hover {
+            background: white;
+            color: var(--bg-deep);
+            transform: rotate(90deg);
+        }
+
         /* Large OS Selection Cards */
         .os-selector {
             display: grid;
@@ -807,6 +831,12 @@
     <!-- Provision Modal -->
     <div class="overlay" id="provisionModal">
         <div class="modal">
+            <button class="modal-close" onclick="closeModal('provisionModal')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
             <h3 style="font-size: 28px; margin-bottom: 8px;">Provision Node</h3>
             <p style="color: var(--text-dim); font-size: 14px; margin-bottom: 40px;">Establish a new encrypted tunnel
                 for a target device.</p>
@@ -844,7 +874,7 @@
                 <div class="os-option" onclick="setOS('linux', this)">
                     <svg viewBox="0 0 24 24" fill="currentColor">
                         <path
-                            d="M21 16.5c0 .38-.21.71-.53.88l-7.97 4.41c-.3.17-.66.17-.96 0l-7.97-4.41c-.32-.17-.53-.5-.53-.88V7.5c0-.38.21-.71.53-.88l7.97-4.41c.3-.17.66-.17.96 0l7.97 4.41c.32.17.53.5.53.88v9z" />
+                            d="M21 16.5c0 .38-.21.71-.53.88l-7.97 4.41c-.3.17-.66.17-.96 0l-7.97-4.41c-.32-.17-.53-.5-.53-.88V7.5c0-.38.21-.71.53-.88l7.97-4.41c.3-.17.66.17.96 0l7.97 4.41c.32.17.53.5.53.88v9z" />
                     </svg>
                     <span>Linux</span>
                     <small>Canonical Hub</small>
@@ -862,14 +892,20 @@
             <div style="display: flex; gap: 16px; margin-top: 40px;">
                 <button class="btn-create" style="flex: 2" onclick="processProvision()">Provision Secure Node</button>
                 <button class="btn-logout" style="flex: 1; border-color: var(--glass-border); color: var(--text-dim);"
-                    onclick="closeModal('provisionModal')">Abandon</button>
+                    onclick="closeModal('provisionModal')">Cancel</button>
             </div>
         </div>
     </div>
 
     <!-- Handshake Success Modal -->
     <div class="overlay" id="successModal">
-        <div class="modal">
+        <div class="modal" style="max-width: 900px;">
+            <button class="modal-close" onclick="closeModal('successModal')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
             <h3 style="font-size: 28px; margin-bottom: 8px;">Node Successfully Deployed</h3>
             <p style="color: var(--text-dim); margin-bottom: 40px;">The node is now an active member of the VPN mesh.
                 Capture the secure credentials below.</p>
@@ -924,18 +960,22 @@
                         style="background: #000; color: #10b981; padding: 20px; border-radius: 16px; font-size: 12px; height: 320px; overflow-y: auto; border: 1px solid var(--glass-border); font-family: 'Inter', monospace; line-height: 1.5;"></pre>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <button class="btn-logout"
-        style="width: 100%; margin-top: 48px; border-color: var(--glass-border); color: var(--text-dim);"
-        onclick="closeModal('successModal')">Close Terminal Session</button>
-    </div>
+            <button class="btn-logout"
+                style="width: 100%; margin-top: 48px; border-color: var(--glass-border); color: var(--text-dim);"
+                onclick="closeModal('successModal')">Finish</button>
+        </div>
     </div>
 
     <!-- Custom Interaction Modal -->
     <div class="overlay" id="customModal">
         <div class="modal" style="max-width: 450px; padding: 48px; text-align: center;">
+            <button class="modal-close" onclick="closeModal('customModal')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
             <div id="modalIcon"
                 style="width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
                 <!-- Vector injected here -->

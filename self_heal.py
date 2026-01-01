@@ -32,11 +32,18 @@ async def heal_system():
     start_interface = get_default_interface()
     print(f"Detected WAN Interface: {start_interface}")
     
-    # 1.5 Enable IP Forwarding (Kernel)
-    print("Enabling IPv4 Forwarding...")
+    # 1.5 Enable IP Forwarding (Kernel - Runbook Step 3)
+    print("Enabling IPv4 Forwarding (Permanent)...")
     subprocess.run(["sysctl", "-w", "net.ipv4.ip_forward=1"], check=False)
-    with open('/proc/sys/net/ipv4/ip_forward', 'w') as f:
-        f.write('1')
+    # Permanent write to sysctl.conf
+    try:
+        with open('/etc/sysctl.conf', 'r+') as f:
+            content = f.read()
+            if "net.ipv4.ip_forward=1" not in content:
+                f.write("\nnet.ipv4.ip_forward=1\n")
+        subprocess.run(["sysctl", "-p"], check=False)
+    except Exception as e:
+        print(f"  Warning: Could not update /etc/sysctl.conf: {e}")
 
     # 2. Load users from DB (Source of Truth)
     print("Connecting to MySQL Database...")
@@ -133,18 +140,24 @@ PostDown = iptables -D FORWARD -i wg0 -o {start_interface} -j ACCEPT; iptables -
             
     print(f"Rebuilt config: Interface optimized, {len(preserved_peers)} preserved, {count} restored.")
 
-    # 7. Reload & Apply Rules
+    # 7. Reload & Apply Rules (Runbook Step 6 & 7)
     print("Reloading WireGuard & Applying Firewall Rules...")
     
     # Actually run the NAT commands once during healing to ensure they are active immediately
-    print(f"  Enforcing NAT on {start_interface}...")
+    print(f"  Enforcing NAT and Forwarding on {start_interface}...")
     try:
-        # Forwarding rules (using -I to ensure they are at the top)
-        subprocess.run(["iptables", "-I", "FORWARD", "1", "-i", "wg0", "-o", start_interface, "-j", "ACCEPT"], check=False)
-        subprocess.run(["iptables", "-I", "FORWARD", "1", "-i", start_interface, "-o", "wg0", "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT"], check=False)
-        # MASQUERADE rule
+        # Step 6: Forwarding rules (using -A as per Runbook)
+        subprocess.run(["iptables", "-A", "FORWARD", "-i", "wg0", "-o", start_interface, "-j", "ACCEPT"], check=False)
+        subprocess.run(["iptables", "-A", "FORWARD", "-i", start_interface, "-o", "wg0", "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT"], check=False)
+        
+        # Step 5: MASQUERADE rule
         subprocess.run(["iptables", "-t", "nat", "-A", "POSTROUTING", "-s", "10.50.0.0/24", "-o", start_interface, "-j", "MASQUERADE"], check=False)
-        print("  ✅ Firewall rules applied to kernel.")
+        
+        # Persist Rules (Runbook Step 6)
+        print("  Saving persistent firewall rules...")
+        subprocess.run(["netfilter-persistent", "save"], check=False)
+        
+        print("  ✅ Firewall rules applied to kernel and persisted.")
     except Exception as e:
         print(f"  ⚠️ Warning: Failed to apply some firewall rules: {e}")
 
@@ -152,6 +165,9 @@ PostDown = iptables -D FORWARD -i wg0 -o {start_interface} -j ACCEPT; iptables -
     if success:
         print("✅ WireGuard Reload Successful!")
         print("\n--- HEALING COMPLETE ---")
-        print("Clients should now have internet access. If not, try: sudo systemctl restart vpn-control")
+        print("Clients should now have internet access.")
+        print("\n⚠️ IMPORTANT AWS REMINDERS (Runbook Step 2):")
+        print("1. EC2 Instance -> Source/Destination check MUST be DISABLED.")
+        print("2. Security Group -> UDP 51820 MUST be ALLOWED Inbound.")
     else:
         print(f"❌ Reload Failed: {err}")
