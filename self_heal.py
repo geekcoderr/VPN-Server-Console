@@ -10,7 +10,7 @@ import os
 import shutil
 import re
 import subprocess
-from app.database import get_all_users, DB_PATH
+from app.database import get_all_users
 from app.wg import (
     WG_CONFIG_PATH, 
     reload_wireguard, 
@@ -39,7 +39,7 @@ async def heal_system():
         f.write('1')
 
     # 2. Load users from DB (Source of Truth)
-    print(f"Reading Database: {DB_PATH}")
+    print("Connecting to MySQL Database...")
     users = await get_all_users()
     active_users = {u['username']: u for u in users if u['status'] == 'active'}
     print(f"Found {len(active_users)} active users in DB.")
