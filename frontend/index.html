@@ -780,42 +780,51 @@
                 </div>
                 <div class="stat-value" id="activeSessions">0</div>
                 <div class="stat-label">Live Handshakes</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon" style="color:var(--warning); background: rgba(245, 158, 11, 0.15)">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path
-                            d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                    </svg>
+                <div class="stat-box">
+                    <span class="stat-label">Total Nodes</span>
+                    <span class="stat-value" id="totalUsers">0</span>
                 </div>
-                <div class="stat-value" id="totalTraffic">0 B</div>
-                <div class="stat-label">Accumulated Flux</div>
-            </div>
+                <div class="stat-box">
+                    <span class="stat-label">Online Nodes</span>
+                    <span class="stat-value text-accent" id="activeSessions">0</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Global Traffic</span>
+                    <span class="stat-value" id="totalTraffic">0 B</span>
+                </div>
+                <button class="btn-create" style="margin-left: auto; padding: 12px 24px;" onclick="loadNodes()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <path
+                            d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                    </svg>
+                    Refresh Mesh
+                </button>
+                <button class="btn-create" onclick="showModal('provisionModal')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    Provision Node
+                </button>
         </header>
 
         <section class="console-header">
             <h2>Access Management</h2>
-            <button class="btn-create" onclick="showModal('provisionModal')">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                    <line x1="12" y1="5" x2="12" y2="19" />
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
-                Deploy New Node
-            </button>
         </section>
 
         <div class="table-view">
             <table>
                 <thead>
                     <tr>
-                        <th>Node Identity</th>
-                        <th>Host Arc</th>
-                        <th>Network Status</th>
-                        <th>Heartbeat</th>
-                        <th>Connection Endpoint</th>
-                        <th>Flux (TX/RX)</th>
+                        <th>Username</th>
+                        <th>OS</th>
+                        <th>Account Status</th>
+                        <th>Connection</th>
+                        <th>Endpoint</th>
+                        <th>Transfer</th>
                         <th>Last Handshake</th>
-                        <th>Operations</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="usersTableBody">
@@ -1055,10 +1064,10 @@
                     <td><div class="os-tag">${getOSIconIcon(u.client_os)} ${u.client_os}</div></td>
                     <td>
                         <span class="status-badge ${u.status === 'active' ? 'status-active' : 'status-suspended'}">
-                            ${u.status === 'active' ? 'SECURED' : 'SUSPENDED'}
+                            ${u.status === 'active' ? 'Active' : 'Disabled'}
                         </span>
                     </td>
-                    <td><div class="pulse-box"><div class="pulse-dot ${u.connected ? 'online' : ''}" id="pulse-${u.public_key}"></div> <span id="pulse-text-${u.public_key}">${u.connected ? 'LIVE' : 'IDLE'}</span></div></td>
+                    <td><div class="pulse-box"><div class="pulse-dot ${u.connected ? 'online' : ''}" id="pulse-${u.public_key}"></div> <span id="pulse-text-${u.public_key}">${u.connected ? 'Online' : 'Offline'}</span></div></td>
                     <td>
                         <div class="location-box" title="Global Ingress Point: ${u.last_endpoint || 'Unmapped'}">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -1127,7 +1136,7 @@
                 const hs = document.getElementById(`handshake-${key}`);
 
                 if (dot) dot.className = `pulse-dot ${hub.connected ? 'online' : ''}`;
-                if (txt) txt.innerText = hub.connected ? 'LIVE' : 'IDLE';
+                if (txt) txt.innerText = hub.connected ? 'Online' : 'Offline';
                 if (tx) tx.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg> ${formatBytes(hub.transfer_tx)}`;
                 if (rx) rx.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg> ${formatBytes(hub.transfer_rx)}`;
                 if (hs && hub.latest_handshake) hs.innerText = new Date(hub.latest_handshake * 1000).toLocaleString();

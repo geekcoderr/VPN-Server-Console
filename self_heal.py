@@ -97,7 +97,7 @@ PrivateKey = {svr_priv_key}
 # - Forward traffic from wg0 to WAN (Insert at TOP to bypass Docker)
 # - Allow established return traffic
 # - Masquerade outbound traffic
-PostUp = iptables -I FORWARD 1 -i wg0 -o {start_interface} -j ACCEPT; iptables -I FORWARD 1 -i {start_interface} -o wg0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; iptables -t nat -A POSTROUTING -s 10.50.0.0/24 -o {start_interface} -j MASQUERADE
+PostUp = iptables -I FORWARD 1 -i wg0 -o {start_interface} -j ACCEPT; iptables -I FORWARD 1 -i {start_interface} -o wg0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; iptables -t nat -I POSTROUTING 1 -s 10.50.0.0/24 -o {start_interface} -j MASQUERADE
 PostDown = iptables -D FORWARD -i wg0 -o {start_interface} -j ACCEPT; iptables -D FORWARD -i {start_interface} -o wg0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; iptables -t nat -D POSTROUTING -s 10.50.0.0/24 -o {start_interface} -j MASQUERADE
 """
 
@@ -146,12 +146,12 @@ PostDown = iptables -D FORWARD -i wg0 -o {start_interface} -j ACCEPT; iptables -
     # Actually run the NAT commands once during healing to ensure they are active immediately
     print(f"  Enforcing NAT and Forwarding on {start_interface}...")
     try:
-        # Step 6: Forwarding rules (using -A as per Runbook)
-        subprocess.run(["iptables", "-A", "FORWARD", "-i", "wg0", "-o", start_interface, "-j", "ACCEPT"], check=False)
-        subprocess.run(["iptables", "-A", "FORWARD", "-i", start_interface, "-o", "wg0", "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT"], check=False)
+        # Step 6: Forwarding rules (using -I to ensure priority over Docker)
+        subprocess.run(["iptables", "-I", "FORWARD", "1", "-i", "wg0", "-o", start_interface, "-j", "ACCEPT"], check=False)
+        subprocess.run(["iptables", "-I", "FORWARD", "1", "-i", start_interface, "-o", "wg0", "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT"], check=False)
         
         # Step 5: MASQUERADE rule
-        subprocess.run(["iptables", "-t", "nat", "-A", "POSTROUTING", "-s", "10.50.0.0/24", "-o", start_interface, "-j", "MASQUERADE"], check=False)
+        subprocess.run(["iptables", "-t", "nat", "-I", "POSTROUTING", "1", "-s", "10.50.0.0/24", "-o", start_interface, "-j", "MASQUERADE"], check=False)
         
         # Persist Rules (Runbook Step 6)
         print("  Saving persistent firewall rules...")
