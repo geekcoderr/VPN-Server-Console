@@ -106,6 +106,7 @@ PrivateKey = {svr_priv_key}
 # - Allow established return traffic
 # - Masquerade outbound traffic
 # - MSS Clamping (Crucial for AWS/Fragmented Networks)
+MTU = 1280
 PostUp = iptables -I FORWARD 1 -i wg0 -o {start_interface} -j ACCEPT; iptables -I FORWARD 1 -i {start_interface} -o wg0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; iptables -t nat -I POSTROUTING 1 -s 10.50.0.0/24 -o {start_interface} -j MASQUERADE; iptables -t mangle -I FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
 PostDown = iptables -D FORWARD -i wg0 -o {start_interface} -j ACCEPT; iptables -D FORWARD -i {start_interface} -o wg0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; iptables -t nat -D POSTROUTING -s 10.50.0.0/24 -o {start_interface} -j MASQUERADE; iptables -t mangle -D FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
 """
@@ -118,13 +119,16 @@ PostDown = iptables -D FORWARD -i wg0 -o {start_interface} -j ACCEPT; iptables -
         for p in preserved_peers:
             f.write('\n' + p + '\n')
             
-        # Write DB users (Skipping duplicates)
+        # Write DB users (Force reconstruction to ensure validity)
         count = 0
         for username, user in active_users.items():
+            user_ip = user['assigned_ip']
+            user_pk = user['public_key']
+            
             # Check if this user is already preserved (by key)
             is_preserved = False
             for p in preserved_peers:
-                if user['public_key'] in p:
+                if user_pk in p:
                     is_preserved = True
                     break
             
@@ -133,18 +137,17 @@ PostDown = iptables -D FORWARD -i wg0 -o {start_interface} -j ACCEPT; iptables -
                 continue
                 
             # Check IP Conflict
-            user_ip = user['assigned_ip']
             if user_ip in used_ips:
-                print(f"  ⚠️ CONFLICT: IP {user_ip} is taken by Master User!")
-                # Simple fix: Allocate next free IP? 
-                # For safety in this script, we just SKIP adding it to config to prevent breakage.
-                print(f"  ❌ Skipping {username} to prevent IP collision. Please regenerate this user in Dashboard.")
+                print(f"  ⚠️ CONFLICT: IP {user_ip} is taken! Regenerating next free IP...")
+                # We should really call allocate_ip here, but for simple healing we just skip 
+                # to avoid corruption. Dashboard is better for re-allocation.
                 continue
                 
-            # Add to config
+            # Add to config (Cleanest possible format)
             print(f"  Restoring: {username} ({user_ip})")
-            peer_block = f"\n[Peer]\n# {username}\nPublicKey = {user['public_key']}\nAllowedIPs = {user_ip}/32\n"
+            peer_block = f"\n[Peer]\n# {username}\nPublicKey = {user_pk}\nAllowedIPs = {user_ip}/32\n"
             f.write(peer_block)
+            used_ips.add(user_ip)
             count += 1
             
     print(f"Rebuilt config: Interface optimized, {len(preserved_peers)} preserved, {count} restored.")

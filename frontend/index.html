@@ -1076,10 +1076,18 @@
                     <td><div class="os-tag">${getOSIconIcon(u.client_os)} ${u.client_os}</div></td>
                     <td>
                         <span class="status-badge ${u.status === 'active' ? 'status-active' : 'status-suspended'}">
+                            <span class="status-dot ${u.status === 'active' ? 'status-active' : 'status-suspended'}"></span>
                             ${u.status === 'active' ? 'Active' : 'Disabled'}
                         </span>
                     </td>
-                    <td><div class="pulse-box"><div class="pulse-dot ${u.connected ? 'online' : ''}" id="pulse-${u.public_key}"></div> <span id="pulse-text-${u.public_key}">${u.connected ? 'Online' : 'Offline'}</span></div></td>
+                    <td>
+                        <div class="pulse-box">
+                            <div class="pulse-dot ${u.connected ? 'online' : ''}" id="pulse-${u.public_key}"></div> 
+                            <span id="pulse-text-${u.public_key}" style="font-weight:700; font-size:12px; letter-spacing:1px; color:${u.connected ? 'var(--success)' : 'var(--text-dim)'}">
+                                ${u.connected ? 'ONLINE' : 'OFFLINE'}
+                            </span>
+                        </div>
+                    </td>
                     <td>
                         <div class="location-box" title="Global Ingress Point: ${u.last_endpoint || 'Unmapped'}">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -1148,7 +1156,10 @@
                 const hs = document.getElementById(`handshake-${key}`);
 
                 if (dot) dot.className = `pulse-dot ${hub.connected ? 'online' : ''}`;
-                if (txt) txt.innerText = hub.connected ? 'Online' : 'Offline';
+                if (txt) {
+                    txt.innerText = hub.connected ? 'ONLINE' : 'OFFLINE';
+                    txt.style.color = hub.connected ? 'var(--success)' : 'var(--text-dim)';
+                }
                 if (tx) tx.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg> ${formatBytes(hub.transfer_tx)}`;
                 if (rx) rx.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg> ${formatBytes(hub.transfer_rx)}`;
                 if (hs && hub.latest_handshake) hs.innerText = new Date(hub.latest_handshake * 1000).toLocaleString();
