@@ -103,6 +103,7 @@
             font-weight: 700;
             background: linear-gradient(to right, #fff, #94a3b8);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -932,7 +933,7 @@
                     </td>
                     <td>
                         <div class="action-tray">
-                            <button class="action-btn" title="Toggle Connection" onclick="toggleNode('${u.username}')">
+                            <button class="action-btn" title="Enable/Disable VPN Access" onclick="toggleNode('${u.username}')">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
                             </button>
                             <button class="action-btn" title="Inspect Identity" onclick="getNodeConfig('${u.username}')">
