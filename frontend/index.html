@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VPN Control - Ultimate Dashboard</title>
+    <title>GeeksVPN - Ultimate Node Dashboard</title>
+    <link rel="icon" type="image/png" href="favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -90,7 +91,7 @@
         .logo-box {
             width: 44px;
             height: 44px;
-            background: linear-gradient(135deg, var(--accent), #a855f7);
+            background: url('logo.png') center/cover no-repeat;
             border-radius: 14px;
             display: flex;
             align-items: center;
@@ -99,12 +100,25 @@
         }
 
         .brand h1 {
-            font-size: 24px;
-            font-weight: 700;
-            background: linear-gradient(to right, #fff, #94a3b8);
-            -webkit-background-clip: text;
+            font-size: 26px;
+            letter-spacing: -1px;
+            margin: 0;
+            background: linear-gradient(to right, #fff, var(--text-dim));
             background-clip: text;
+            -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+        }
+
+        .brand-sub {
+            font-size: 10px;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 700;
+            margin-top: -6px;
+            opacity: 0.8;
         }
 
         .user-nav {
@@ -287,14 +301,7 @@
             text-align: left;
             font-size: 11px;
             font-weight: 700;
-            color: var(--text-dim);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-
-        td {
-            padding: 24px 20px;
-            border-top: 1px solid var(--glass-border);
+            border-bottom: 1px solid var(--glass-border);
             vertical-align: middle;
         }
 
@@ -742,12 +749,11 @@
 
     <nav class="navbar">
         <div class="brand">
-            <div class="logo-box">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                </svg>
+            <div class="logo-box"></div>
+            <div>
+                <h1>GeeksVPN</h1>
+                <div class="brand-sub">Powered by WireGuard</div>
             </div>
-            <h1>VPN Center</h1>
         </div>
         <div class="user-nav">
             <div class="admin-pill" id="adminPill">
@@ -1139,7 +1145,7 @@
                     </td>
                     <td>
                         <div class="action-tray">
-                            <button class="action-btn" style="width: auto; padding: 0 16px; gap: 8px;" title="Secure/Suspend Access" onclick="toggleNode('${u.username}')">
+                            <button class="action-btn" style="width: auto; padding: 0 16px; gap: 8px;" title="Secure/Suspend Access" onclick="toggleNode('${u.username}', '${u.status}')">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
                                 ${u.status === 'active' ? 'Disable' : 'Enable'}
                             </button>
@@ -1256,7 +1262,7 @@
                 closeModal('provisionModal');
                 spawnInjectedIdentity(data.qr_code, data.client_config, name);
                 loadNodes();
-                triggerToast("Identity Injected Successfully");
+                triggerToast(`Identity ${name} Injected Successfully`);
             } else {
                 const err = await res.json();
                 triggerPremiumModal({
@@ -1268,12 +1274,20 @@
             }
         }
 
-        async function toggleNode(name) {
-            const res = await fetch(`/api/users/${name}/toggle`, { method: 'PATCH' });
-            if (res.ok) {
-                loadNodes();
-                triggerToast("Mesh access state updated.");
-            }
+        async function toggleNode(name, currentStatus) {
+            triggerPremiumModal({
+                title: `${currentStatus === 'active' ? 'Disable' : 'Enable'} Access?`,
+                body: `Are you sure you want to ${currentStatus === 'active' ? 'suspend' : 'restore'} mesh access for ${name}?`,
+                btnText: currentStatus === 'active' ? 'Disable Now' : 'Enable Now',
+                type: currentStatus === 'active' ? 'danger' : 'success',
+                onConfirm: async () => {
+                    const res = await fetch(`/api/users/${name}/toggle`, { method: 'PATCH' });
+                    if (res.ok) {
+                        loadNodes();
+                        triggerToast(`Access for ${name} updated.`);
+                    }
+                }
+            });
         }
 
         async function revokeNode(name) {
