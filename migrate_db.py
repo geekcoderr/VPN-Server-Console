@@ -25,11 +25,12 @@ async def migrate():
         
         async with AsyncSessionLocal() as mysession:
             for sa in sqlite_admins:
-                print(f"Migrating admin: {sa['username']}")
+                sa_dict = dict(sa)
+                print(f"Migrating admin: {sa_dict['username']}")
                 admin = Admin(
-                    id=sa['id'],
-                    username=sa['username'],
-                    password_hash=sa['password_hash']
+                    id=sa_dict['id'],
+                    username=sa_dict['username'],
+                    password_hash=sa_dict['password_hash']
                 )
                 await mysession.merge(admin)
             
@@ -38,15 +39,16 @@ async def migrate():
             sqlite_users = await cursor.fetchall()
             
             for su in sqlite_users:
-                print(f"Migrating user: {su['username']}")
+                su_dict = dict(su)
+                print(f"Migrating user: {su_dict['username']}")
                 # Handle possible missing columns or different formats
                 user = User(
-                    username=su['username'],
-                    public_key=su['public_key'],
-                    assigned_ip=su['assigned_ip'],
-                    client_os=su.get('client_os', 'android'),
-                    status=su.get('status', 'active'),
-                    created_at=datetime.fromisoformat(su['created_at']) if isinstance(su['created_at'], str) else datetime.now()
+                    username=su_dict['username'],
+                    public_key=su_dict['public_key'],
+                    assigned_ip=su_dict['assigned_ip'],
+                    client_os=su_dict.get('client_os', 'android'),
+                    status=su_dict.get('status', 'active'),
+                    created_at=datetime.fromisoformat(su_dict['created_at']) if isinstance(su_dict['created_at'], str) else datetime.now()
                 )
                 mysession.add(user)
             
