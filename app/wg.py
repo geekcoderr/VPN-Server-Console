@@ -377,16 +377,13 @@ def generate_client_config(
     """
     return f"""[Interface]
 PrivateKey = {private_key}
-Address = {assigned_ip}/32
+Address = {assigned_ip}/32, fd42::{assigned_ip.split('.')[-1]}/128
 DNS = {CLIENT_DNS}
 MTU = {CLIENT_MTU}
-# Prevent IPv6 leakage on Linux by disabling it while VPN is active
-PreUp = sysctl -w net.ipv6.conf.all.disable_ipv6=1
-PostDown = sysctl -w net.ipv6.conf.all.disable_ipv6=0
 
 [Peer]
 PublicKey = {server_public_key}
 Endpoint = {VPN_SERVER_ENDPOINT}
-AllowedIPs = 0.0.0.0/0
+AllowedIPs = 0.0.0.0/0, ::/0
 PersistentKeepalive = {PERSISTENT_KEEPALIVE}
 """
