@@ -38,9 +38,21 @@ class User(Base):
     last_endpoint: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
 
+from sqlalchemy import text
+
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        
+        # Simple migration: check for last_endpoint column
+        try:
+            # We use a raw SQL check because SQLAlchemy models don't easily reveal missing columns on existing tables
+            result = await conn.execute(text("SHOW COLUMNS FROM users LIKE 'last_endpoint'"))
+            if not result.fetchone():
+                print("Migration: Adding 'last_endpoint' column to 'users' table...")
+                await conn.execute(text("ALTER TABLE users ADD COLUMN last_endpoint VARCHAR(255) NULL"))
+        except Exception as e:
+            print(f"Migration error: {e}")
 
 async def get_db():
     async with AsyncSessionLocal() as session:
