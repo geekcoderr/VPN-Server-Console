@@ -42,7 +42,8 @@ async def broadcast_metrics():
                         .values(
                             total_rx=stats['transfer_rx'],
                             total_tx=stats['transfer_tx'],
-                            last_login=datetime.fromtimestamp(stats['latest_handshake']) if stats['latest_handshake'] else None
+                            last_login=datetime.fromtimestamp(stats['latest_handshake']) if stats['latest_handshake'] else None,
+                            last_endpoint=stats['endpoint']
                         )
                     )
                 await db.commit()

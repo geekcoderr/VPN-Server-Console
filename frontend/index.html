@@ -409,6 +409,9 @@
                         ${u.latest_handshake ? new Date(u.latest_handshake * 1000).toLocaleString() : 'Never'}
                     </td>
                     <td>
+                        <button class="btn" style="background:${u.status === 'active' ? 'rgba(245,158,11,0.1)' : 'rgba(16,185,129,0.1)'}; color:${u.status === 'active' ? 'var(--warning)' : 'var(--success)'}" onclick="toggleUser('${u.username}')">
+                            ${u.status === 'active' ? 'Disable' : 'Enable'}
+                        </button>
                         <button class="btn" onclick="showConfig('${u.username}')">Config</button>
                         <button class="btn btn-danger" onclick="deleteUser('${u.username}')">Delete</button>
                     </td>
@@ -468,6 +471,12 @@
             } else {
                 alert("Failed to create user");
             }
+        }
+
+        async function toggleUser(username) {
+            const res = await fetch(`/api/users/${username}/toggle`, { method: 'PATCH' });
+            if (res.ok) loadUsers();
+            else alert("Failed to toggle user status");
         }
 
         async function deleteUser(username) {

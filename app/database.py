@@ -35,6 +35,7 @@ class User(Base):
     total_rx: Mapped[int] = mapped_column(BigInteger, default=0)
     total_tx: Mapped[int] = mapped_column(BigInteger, default=0)
     last_login: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    last_endpoint: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
 
 async def init_db():
@@ -73,7 +74,8 @@ async def get_all_users():
             "created_at": u.created_at.isoformat(),
             "total_rx": u.total_rx,
             "total_tx": u.total_tx,
-            "last_login": u.last_login.isoformat() if u.last_login else None
+            "last_login": u.last_login.isoformat() if u.last_login else None,
+            "last_endpoint": u.last_endpoint
         } for u in users]
 
 async def get_user_by_username(username: str):
@@ -91,7 +93,8 @@ async def get_user_by_username(username: str):
             "created_at": u.created_at.isoformat(),
             "total_rx": u.total_rx,
             "total_tx": u.total_tx,
-            "last_login": u.last_login.isoformat() if u.last_login else None
+            "last_login": u.last_login.isoformat() if u.last_login else None,
+            "last_endpoint": u.last_endpoint
         }
 
 async def create_user(username: str, public_key: str, assigned_ip: str, client_os: str = 'android'):

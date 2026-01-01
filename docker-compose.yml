@@ -11,7 +11,7 @@ services:
       - "443:443"
     volumes:
       # Mount Let's Encrypt certs
-      - /etc/letsencrypt/live/wg.nishantmaheshwari.online:/etc/nginx/certs-letsencrypt:ro
+      - /etc/letsencrypt/live/vpn.nishantmaheshwari.online:/etc/nginx/certs-letsencrypt:ro
       # ACME challenge
       - ./nginx/html:/var/www/html
       # Static Frontend Files
