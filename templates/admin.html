@@ -579,6 +579,55 @@
         .connection-badge.offline {
             color: var(--text-secondary);
         }
+
+        /* OS Selection Cards */
+        .os-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .os-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .os-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--accent-hover);
+        }
+
+        .os-card.selected {
+            background: rgba(99, 102, 241, 0.15);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px var(--accent);
+        }
+
+        .os-card-icon {
+            font-size: 24px;
+        }
+
+        .os-card-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .os-card.selected .os-card-label {
+            color: var(--text-primary);
+        }
     </style>
 </head>
 
@@ -685,17 +734,33 @@
                         </small>
                     </div>
                     <div class="form-group">
-                        <label for="clientOs">Client OS / Device Type</label>
-                        <select id="clientOs"
-                            style="width: 100%; padding: 12px 16px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 14px; outline: none;">
-                            <option value="android">Android (Standard)</option>
-                            <option value="linux">Linux (Strict Mode)</option>
-                            <option value="ios">iOS (Standard)</option>
-                            <option value="windows">Windows</option>
-                            <option value="macos">macOS</option>
-                        </select>
-                        <small style="color: var(--text-secondary); font-size: 12px; margin-top: 4px; display: block;">
-                            Select "Linux" for strict leak prevention on laptops.
+                        <label>Target Operating System</label>
+                        <div class="os-cards" id="osSelector">
+                            <div class="os-card selected" onclick="selectOS('android')" data-os="android">
+                                <span class="os-card-icon">📱</span>
+                                <span class="os-card-label">Android</span>
+                            </div>
+                            <div class="os-card" onclick="selectOS('ios')" data-os="ios">
+                                <span class="os-card-icon">🍎</span>
+                                <span class="os-card-label">iOS</span>
+                            </div>
+                            <div class="os-card" onclick="selectOS('linux')" data-os="linux">
+                                <span class="os-card-icon">💻</span>
+                                <span class="os-card-label">Linux</span>
+                            </div>
+                            <div class="os-card" onclick="selectOS('macos')" data-os="macos">
+                                <span class="os-card-icon">🍏</span>
+                                <span class="os-card-label">macOS</span>
+                            </div>
+                            <div class="os-card" onclick="selectOS('windows')" data-os="windows">
+                                <span class="os-card-icon">🪟</span>
+                                <span class="os-card-label">Windows</span>
+                            </div>
+                        </div>
+                        <input type="hidden" id="clientOs" value="android">
+                        <small style="color: var(--text-secondary); font-size: 12px; margin-top: 12px; display: block;"
+                            id="osHint">
+                            Standard configuration for mobile devices.
                         </small>
                     </div>
                 </form>
@@ -774,6 +839,28 @@
         let users = [];
         let pendingDeleteUser = null;
         let currentConfig = '';
+
+        let selectedOS = 'android';
+
+        function selectOS(os) {
+            selectedOS = os;
+            document.getElementById('clientOs').value = os;
+
+            // Update UI
+            document.querySelectorAll('.os-card').forEach(card => {
+                card.classList.toggle('selected', card.dataset.os === os);
+            });
+
+            // Update hint
+            const hints = {
+                'android': 'Optimized for mobile. Blocks IPv6 leaks natively.',
+                'ios': 'Optimized for iPhone/iPad. Blocks IPv6 leaks natively.',
+                'linux': 'Strict Mode: Adds PreUp/PostDown commands for wg-quick.',
+                'macos': 'Optimized for Mac. Strict IPv6/IPv4 routing enabled.',
+                'windows': 'Optimized for Windows WireGuard app.'
+            };
+            document.getElementById('osHint').textContent = hints[os] || '';
+        }
 
         // Load users on page load
         document.addEventListener('DOMContentLoaded', loadUsers);

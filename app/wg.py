@@ -377,6 +377,7 @@ def generate_client_config(
     For Linux: Adds strict sysctl hooks to prevent IPv6 leakage.
     For Android/iOS: Uses standard config to avoid 'cannot set address' errors.
     """
+    # Base configuration
     config = f"""[Interface]
 PrivateKey = {private_key}
 Address = {assigned_ip}/32
@@ -384,19 +385,26 @@ DNS = {CLIENT_DNS}
 MTU = {CLIENT_MTU}
 """
 
-    # Linux-specific: Strict IPv6 Leak Prevention
+    # OS-Specific Strictness
     if client_os == 'linux':
+        # Linux specific: Use sysctl hammer (most reliable for wg-quick)
         config += """
-# Strict IPv6 Leak Prevention for Linux
+# Strict IPv6 Leak Prevention (Linux)
 PreUp = sysctl -w net.ipv6.conf.all.disable_ipv6=1
 PostDown = sysctl -w net.ipv6.conf.all.disable_ipv6=0
 """
+        allowed_ips = "0.0.0.0/0"
+    elif client_os in ('macos', 'ios', 'android', 'windows'):
+        # Modern apps on these OSes handle dual-stack AllowedIPs well
+        allowed_ips = "0.0.0.0/0, ::/0"
+    else:
+        allowed_ips = "0.0.0.0/0"
 
     config += f"""
 [Peer]
 PublicKey = {server_public_key}
 Endpoint = {VPN_SERVER_ENDPOINT}
-AllowedIPs = 0.0.0.0/0
+AllowedIPs = {allowed_ips}
 PersistentKeepalive = {PERSISTENT_KEEPALIVE}
 """
     return config
