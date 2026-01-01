@@ -77,14 +77,22 @@ async def heal_system():
         if block.strip().startswith('[Interface]'):
             continue
             
-        # Logic to preserve "geek"
+        # Logic to preserve "geek" or any master user
         if "# geek" in block.lower() or ("geek" in block.lower() and "publickey" in block.lower()):
             print("  Found MASTER USER 'geek' - Preserving and auditing IP...")
-            ip_match = re.search(r'AllowedIPs\s*=\s*([\d\.]+)', block)
+            ip_match = re.search(r'AllowedIPs\s*=\s*([\d\.\/]+)', block)
             if ip_match:
-                used_ips.add(ip_match.group(1))
-                print(f"  Geek is using IP: {ip_match.group(1)}")
-            preserved_peers.append(block.strip())
+                ip_val = ip_match.group(1).split('/')[0]
+                used_ips.add(ip_val)
+                print(f"  Geek is using IP: {ip_val}")
+                preserved_peers.append(block.strip())
+            else:
+                # If geek exists but IP is missing/broken, force a safe IP
+                print("  ⚠️ Geek user has no AllowedIPs! Forcing 10.50.0.2/32")
+                pk_match = re.search(r'PublicKey\s*=\s*(\S+)', block)
+                if pk_match:
+                    preserved_peers.append(f"[Peer]\n# geek\nPublicKey = {pk_match.group(1)}\nAllowedIPs = 10.50.0.2/32")
+                    used_ips.add('10.50.0.2')
 
     # 5. Rebuild [Interface] with CORRECT Rules (Runbook Step 6 & 5)
     print("Rebuilding Interface Block with Runbook-compliant Firewall Rules...")
@@ -97,8 +105,9 @@ PrivateKey = {svr_priv_key}
 # - Forward traffic from wg0 to WAN (Insert at TOP to bypass Docker)
 # - Allow established return traffic
 # - Masquerade outbound traffic
-PostUp = iptables -I FORWARD 1 -i wg0 -o {start_interface} -j ACCEPT; iptables -I FORWARD 1 -i {start_interface} -o wg0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; iptables -t nat -I POSTROUTING 1 -s 10.50.0.0/24 -o {start_interface} -j MASQUERADE
-PostDown = iptables -D FORWARD -i wg0 -o {start_interface} -j ACCEPT; iptables -D FORWARD -i {start_interface} -o wg0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; iptables -t nat -D POSTROUTING -s 10.50.0.0/24 -o {start_interface} -j MASQUERADE
+# - MSS Clamping (Crucial for AWS/Fragmented Networks)
+PostUp = iptables -I FORWARD 1 -i wg0 -o {start_interface} -j ACCEPT; iptables -I FORWARD 1 -i {start_interface} -o wg0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; iptables -t nat -I POSTROUTING 1 -s 10.50.0.0/24 -o {start_interface} -j MASQUERADE; iptables -t mangle -I FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
+PostDown = iptables -D FORWARD -i wg0 -o {start_interface} -j ACCEPT; iptables -D FORWARD -i {start_interface} -o wg0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; iptables -t nat -D POSTROUTING -s 10.50.0.0/24 -o {start_interface} -j MASQUERADE; iptables -t mangle -D FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
 """
 
     # 6. Write New Config
@@ -161,6 +170,10 @@ PostDown = iptables -D FORWARD -i wg0 -o {start_interface} -j ACCEPT; iptables -
         print("  Enabling MASQUERADE...")
         subprocess.run(["iptables", "-t", "nat", "-I", "POSTROUTING", "1", "-s", "10.50.0.0/24", "-o", start_interface, "-j", "MASQUERADE"], check=False)
         
+        # Step 7: TCP MSS Clamping (The Fix for No-Internet in AWS)
+        print("  Applying TCP MSS Clamping...")
+        subprocess.run(["iptables", "-t", "mangle", "-I", "FORWARD", "-p", "tcp", "--tcp-flags", "SYN,RST", "SYN", "-j", "TCPMSS", "--clamp-mss-to-pmtu"], check=False)
+
         # Persist Rules (Runbook Step 6)
         print("  Saving persistent firewall rules...")
         subprocess.run(["netfilter-persistent", "save"], check=False)

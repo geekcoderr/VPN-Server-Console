@@ -761,7 +761,7 @@
     <div class="container fade-in">
         <header class="stats-header">
             <div class="stat-card">
-                <div class="stat-icon">
+                <div class="stat-icon" style="color:var(--accent); background: rgba(99, 102, 241, 0.15)">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                         <circle cx="9" cy="7" r="4" />
@@ -770,7 +770,7 @@
                     </svg>
                 </div>
                 <div class="stat-value" id="totalUsers">0</div>
-                <div class="stat-label">Total Nodes Assets</div>
+                <div class="stat-label">Provisioned Assets</div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon" style="color:var(--success); background: rgba(16, 185, 129, 0.15)">
@@ -779,7 +779,7 @@
                     </svg>
                 </div>
                 <div class="stat-value" id="activeSessions">0</div>
-                <div class="stat-label">Online Handshakes</div>
+                <div class="stat-label">Live Handshakes</div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon" style="color:var(--warning); background: rgba(245, 158, 11, 0.15)">
@@ -789,7 +789,16 @@
                     </svg>
                 </div>
                 <div class="stat-value" id="totalTraffic">0 B</div>
-                <div class="stat-label">Mesh Network Flux</div>
+                <div class="stat-label">Accumulated Flux</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="color:var(--error); background: rgba(239, 68, 68, 0.15)">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                    </svg>
+                </div>
+                <div class="stat-value" id="peakBw">0 B/s</div>
+                <div class="stat-label">Peak Bandwidth</div>
             </div>
             <div style="margin-left: auto; display: flex; gap: 12px; align-items: center;">
                 <button class="btn-create"
