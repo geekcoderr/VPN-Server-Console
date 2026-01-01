@@ -377,13 +377,13 @@ def generate_client_config(
     """
     return f"""[Interface]
 PrivateKey = {private_key}
-Address = {assigned_ip}/32
+Address = {assigned_ip}/32, fd00:00:00::{assigned_ip.split('.')[-1]}/128
 DNS = {CLIENT_DNS}
 MTU = {CLIENT_MTU}
 
 [Peer]
 PublicKey = {server_public_key}
 Endpoint = {VPN_SERVER_ENDPOINT}
-AllowedIPs = 0.0.0.0/0
+AllowedIPs = 0.0.0.0/0, ::/0
 PersistentKeepalive = {PERSISTENT_KEEPALIVE}
 """
