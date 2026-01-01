@@ -384,6 +384,6 @@ MTU = {CLIENT_MTU}
 [Peer]
 PublicKey = {server_public_key}
 Endpoint = {VPN_SERVER_ENDPOINT}
-AllowedIPs = 0.0.0.0/0, ::/0
+AllowedIPs = 0.0.0.0/0
 PersistentKeepalive = {PERSISTENT_KEEPALIVE}
 """
