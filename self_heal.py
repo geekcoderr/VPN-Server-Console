@@ -152,8 +152,8 @@ PostDown = iptables -D FORWARD -i wg0 -o {start_interface} -j ACCEPT; iptables -
             
     print(f"Rebuilt config: Interface optimized, {len(preserved_peers)} preserved, {count} restored.")
 
-    # 7. Reload & Apply Rules (Runbook Step 6 & 7)
-    print("Reloading WireGuard & Applying Firewall Rules...")
+    # 7. Hard Refresh & Apply Rules (Definitive Recovery)
+    print("Performing Hard Refresh (wg-quick down/up)...")
     
     # Actually run the NAT commands once during healing to ensure they are active immediately
     print(f"  Enforcing NAT and Forwarding on {start_interface}...")
@@ -163,6 +163,7 @@ PostDown = iptables -D FORWARD -i wg0 -o {start_interface} -j ACCEPT; iptables -
         subprocess.run(["iptables", "-D", "FORWARD", "-i", "wg0", "-o", start_interface, "-j", "ACCEPT"], check=False)
         subprocess.run(["iptables", "-D", "FORWARD", "-i", start_interface, "-o", "wg0", "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT"], check=False)
         subprocess.run(["iptables", "-t", "nat", "-D", "POSTROUTING", "-s", "10.50.0.0/24", "-o", start_interface, "-j", "MASQUERADE"], check=False)
+        subprocess.run(["iptables", "-t", "mangle", "-D", "FORWARD", "-p", "tcp", "--tcp-flags", "SYN,RST", "SYN", "-j", "TCPMSS", "--clamp-mss-to-pmtu"], check=False)
 
         # Step 6: Forwarding rules (using -I to ensure priority over Docker)
         print("  Injecting high-priority forwarding...")
@@ -180,18 +181,17 @@ PostDown = iptables -D FORWARD -i wg0 -o {start_interface} -j ACCEPT; iptables -
         # Persist Rules (Runbook Step 6)
         print("  Saving persistent firewall rules...")
         subprocess.run(["netfilter-persistent", "save"], check=False)
-        
-        print("  ✅ Firewall rules applied to kernel and persisted.")
     except Exception as e:
-        print(f"  ⚠️ Warning: Failed to apply some firewall rules: {e}")
+        print(f"  ⚠️ Warning: Firewall enforcement failed: {e}")
 
-    success, err = await reload_wireguard()
-    if success:
-        print("✅ WireGuard Reload Successful!")
+    # Definitive Restart
+    print("  Restarting WireGuard Service...")
+    subprocess.run(["wg-quick", "down", "wg0"], check=False)
+    result = subprocess.run(["wg-quick", "up", "wg0"], capture_output=True, text=True)
+    
+    if result.returncode == 0:
+        print("✅ WireGuard Restarted Successfully!")
         print("\n--- HEALING COMPLETE ---")
-        print("Clients should now have internet access.")
-        print("\n⚠️ IMPORTANT AWS REMINDERS (Runbook Step 2):")
-        print("1. EC2 Instance -> Source/Destination check MUST be DISABLED.")
-        print("2. Security Group -> UDP 51820 MUST be ALLOWED Inbound.")
+        print("Clients should now have internet access and Handshake status should update shortly.")
     else:
-        print(f"❌ Reload Failed: {err}")
+        print(f"❌ Restart Failed: {result.stderr}")
