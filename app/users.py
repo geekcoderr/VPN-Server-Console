@@ -34,6 +34,7 @@ router = APIRouter(prefix="/api/users", tags=["users"])
 
 class CreateUserRequest(BaseModel):
     username: str
+    client_os: str = 'android'
     
     @validator('username')
     def validate_username(cls, v):
@@ -45,12 +46,19 @@ class CreateUserRequest(BaseModel):
             raise ValueError("Username can only contain letters, numbers, underscores, and hyphens")
         return v.lower()
 
+    @validator('client_os')
+    def validate_client_os(cls, v):
+        if v not in ('android', 'linux', 'ios', 'windows', 'macos'):
+            raise ValueError("Invalid client OS. Must be: android, linux, ios, windows, macos")
+        return v.lower()
+
 
 class UserResponse(BaseModel):
     id: int
     username: str
     public_key: str
     assigned_ip: str
+    client_os: str
     status: str
     created_at: str
 
@@ -97,6 +105,7 @@ async def create_vpn_user(
     6. Generate client config + QR
     """
     username = request.username
+    client_os = request.client_os
     
     # Check if user already exists
     existing = await get_user_by_username(username)
@@ -116,13 +125,13 @@ async def create_vpn_user(
         await add_peer_to_config(public_key, assigned_ip, username)
         
         # Now save to database (WireGuard already has the peer)
-        await create_user(username, public_key, assigned_ip)
+        await create_user(username, public_key, assigned_ip, client_os)
         
         # Get server public key for client config
         server_public_key = await get_server_public_key()
         
         # Generate client config
-        client_config = generate_client_config(private_key, assigned_ip, server_public_key)
+        client_config = generate_client_config(private_key, assigned_ip, server_public_key, client_os)
         
         # Generate QR code
         qr_code = generate_qr_data_uri(client_config)

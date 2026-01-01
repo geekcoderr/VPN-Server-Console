@@ -643,6 +643,7 @@
                         <th>Public Key</th>
                         <th>Status</th>
                         <th>Created</th>
+                        <th>OS</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -678,9 +679,23 @@
                     <div class="form-group">
                         <label for="newUsername">Username</label>
                         <input type="text" id="newUsername" placeholder="e.g., john_doe" required
-                            pattern="^[a-zA-Z0-9_-]+$">
+                            pattern="^[a-zA-Z0-9_-]+$" autocomplete="off">
                         <small style="color: var(--text-secondary); font-size: 12px; margin-top: 4px; display: block;">
                             Letters, numbers, underscores, and hyphens only
+                        </small>
+                    </div>
+                    <div class="form-group">
+                        <label for="clientOs">Client OS / Device Type</label>
+                        <select id="clientOs"
+                            style="width: 100%; padding: 12px 16px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 14px; outline: none;">
+                            <option value="android">Android (Standard)</option>
+                            <option value="linux">Linux (Strict Mode)</option>
+                            <option value="ios">iOS (Standard)</option>
+                            <option value="windows">Windows</option>
+                            <option value="macos">macOS</option>
+                        </select>
+                        <small style="color: var(--text-secondary); font-size: 12px; margin-top: 4px; display: block;">
+                            Select "Linux" for strict leak prevention on laptops.
                         </small>
                     </div>
                 </form>
@@ -816,6 +831,13 @@
                         ${user.status === 'active' ? connectedStatus : ''}
                     </td>
                     <td>${formatDate(user.created_at)}</td>
+                    <td style="text-transform: capitalize; color: var(--text-secondary); font-size: 13px;">
+                        ${user.client_os === 'android' ? '📱 Android' :
+                        user.client_os === 'linux' ? '💻 Linux' :
+                            user.client_os === 'ios' ? '🍎 iOS' :
+                                user.client_os === 'windows' ? '🪟 Win' :
+                                    user.client_os === 'macos' ? '🍎 Mac' : '📱 Android'}
+                    </td>
                     <td class="action-btns">
                         <button class="action-btn qr" onclick="showQR('${escapeHtml(user.username)}')" ${user.status !== 'active' ? 'disabled style="opacity:0.5"' : ''}>QR</button>
                         <button class="action-btn toggle" onclick="toggleUser('${escapeHtml(user.username)}')">${user.status === 'active' ? 'Disable' : 'Enable'}</button>
@@ -850,6 +872,7 @@
 
         async function createUser() {
             const username = document.getElementById('newUsername').value.trim();
+            const clientOs = document.getElementById('clientOs').value;
             if (!username) return;
 
             const btn = document.getElementById('createUserBtn');
@@ -861,7 +884,7 @@
                 const response = await fetch('/api/users', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username })
+                    body: JSON.stringify({ username, client_os: clientOs })
                 });
 
                 if (!response.ok) {

@@ -23,6 +23,7 @@ async def init_db():
                 username TEXT UNIQUE NOT NULL,
                 public_key TEXT UNIQUE NOT NULL,
                 assigned_ip TEXT UNIQUE NOT NULL,
+                client_os TEXT DEFAULT 'android' CHECK(client_os IN ('android', 'linux', 'ios', 'windows', 'macos')),
                 status TEXT DEFAULT 'active' CHECK(status IN ('active', 'disabled')),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -50,7 +51,7 @@ async def get_all_users():
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute(
-            "SELECT id, username, public_key, assigned_ip, status, created_at FROM users ORDER BY created_at DESC"
+            "SELECT id, username, public_key, assigned_ip, client_os, status, created_at FROM users ORDER BY created_at DESC"
         )
         rows = await cursor.fetchall()
         return [dict(row) for row in rows]
@@ -67,12 +68,12 @@ async def get_user_by_username(username: str):
         return dict(row) if row else None
 
 
-async def create_user(username: str, public_key: str, assigned_ip: str):
+async def create_user(username: str, public_key: str, assigned_ip: str, client_os: str = 'android'):
     """Insert a new VPN user."""
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
-            "INSERT INTO users (username, public_key, assigned_ip) VALUES (?, ?, ?)",
-            (username, public_key, assigned_ip)
+            "INSERT INTO users (username, public_key, assigned_ip, client_os) VALUES (?, ?, ?, ?)",
+            (username, public_key, assigned_ip, client_os)
         )
         await db.commit()
 

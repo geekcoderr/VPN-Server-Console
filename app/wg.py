@@ -369,21 +369,34 @@ async def reload_wireguard() -> Tuple[bool, str]:
 def generate_client_config(
     private_key: str,
     assigned_ip: str,
-    server_public_key: str
+    server_public_key: str,
+    client_os: str = 'android'
 ) -> str:
     """
     Generate the client configuration file content.
-    This is what gets encoded in the QR code.
+    For Linux: Adds strict sysctl hooks to prevent IPv6 leakage.
+    For Android/iOS: Uses standard config to avoid 'cannot set address' errors.
     """
-    return f"""[Interface]
+    config = f"""[Interface]
 PrivateKey = {private_key}
 Address = {assigned_ip}/32
 DNS = {CLIENT_DNS}
 MTU = {CLIENT_MTU}
+"""
 
+    # Linux-specific: Strict IPv6 Leak Prevention
+    if client_os == 'linux':
+        config += """
+# Strict IPv6 Leak Prevention for Linux
+PreUp = sysctl -w net.ipv6.conf.all.disable_ipv6=1
+PostDown = sysctl -w net.ipv6.conf.all.disable_ipv6=0
+"""
+
+    config += f"""
 [Peer]
 PublicKey = {server_public_key}
 Endpoint = {VPN_SERVER_ENDPOINT}
 AllowedIPs = 0.0.0.0/0
 PersistentKeepalive = {PERSISTENT_KEEPALIVE}
 """
+    return config
