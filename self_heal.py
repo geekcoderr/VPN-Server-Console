@@ -78,21 +78,16 @@ async def heal_system():
             continue
             
         # Logic to preserve "geek" or any master user
-        if "# geek" in block.lower() or ("geek" in block.lower() and "publickey" in block.lower()):
-            print("  Found MASTER USER 'geek' - Preserving and auditing IP...")
-            ip_match = re.search(r'AllowedIPs\s*=\s*([\d\.\/]+)', block)
-            if ip_match:
-                ip_val = ip_match.group(1).split('/')[0]
-                used_ips.add(ip_val)
-                print(f"  Geek is using IP: {ip_val}")
-                preserved_peers.append(block.strip())
-            else:
-                # If geek exists but IP is missing/broken, force a safe IP
-                print("  ⚠️ Geek user has no AllowedIPs! Forcing 10.50.0.2/32")
-                pk_match = re.search(r'PublicKey\s*=\s*(\S+)', block)
-                if pk_match:
-                    preserved_peers.append(f"[Peer]\n# geek\nPublicKey = {pk_match.group(1)}\nAllowedIPs = 10.50.0.2/32")
-                    used_ips.add('10.50.0.2')
+        # We search for the specific geek comment or public key
+        is_geek = "# geek" in block.lower() or ("geek" in block.lower() and "publickey" in block.lower())
+        if is_geek:
+            print("  Found MASTER USER 'geek' - Recovering and enforcing IP 10.50.0.2...")
+            pk_match = re.search(r'PublicKey\s*=\s*(\S+)', block)
+            if pk_match:
+                # Force clean block reconstruction to avoid "(none)" issues
+                preserved_peers.append(f"[Peer]\n# geek (Master Recovery)\nPublicKey = {pk_match.group(1)}\nAllowedIPs = 10.50.0.2/32")
+                used_ips.add('10.50.0.2')
+                print(f"  Geek recovered with IP: 10.50.0.2")
 
     # 5. Rebuild [Interface] with CORRECT Rules (Runbook Step 6 & 5)
     print("Rebuilding Interface Block with Runbook-compliant Firewall Rules...")
@@ -156,41 +151,42 @@ PostDown = iptables -D INPUT -p udp --dport 51820 -j ACCEPT; iptables -D FORWARD
     # 7. Hard Refresh & Apply Rules (Definitive Recovery)
     print("Performing Hard Refresh (wg-quick down/up)...")
     
-    # Actually run the NAT commands once during healing to ensure they are active immediately
-    print(f"  Enforcing NAT and Forwarding on {start_interface}...")
+    print(f"  Enforcing Hole-Punching and NAT on {start_interface}...")
     try:
         # Step 0: Flush existing rules to prevent duplicates
         print("  Cleaning old rules...")
+        # Clean INPUT rules
         subprocess.run(["iptables", "-D", "INPUT", "-p", "udp", "--dport", "51820", "-j", "ACCEPT"], check=False)
+        # Clean FORWARD rules
         subprocess.run(["iptables", "-D", "FORWARD", "-i", "wg0", "-o", start_interface, "-j", "ACCEPT"], check=False)
         subprocess.run(["iptables", "-D", "FORWARD", "-i", start_interface, "-o", "wg0", "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT"], check=False)
+        # Clean NAT rules
         subprocess.run(["iptables", "-t", "nat", "-D", "POSTROUTING", "-s", "10.50.0.0/24", "-o", start_interface, "-j", "MASQUERADE"], check=False)
+        # Clean MANGLE rules
         subprocess.run(["iptables", "-t", "mangle", "-D", "FORWARD", "-p", "tcp", "--tcp-flags", "SYN,RST", "SYN", "-j", "TCPMSS", "--clamp-mss-to-pmtu"], check=False)
 
-        # Step 0.5: Check UFW
-        print("  Checking UFW Status...")
-        ufw_check = subprocess.run(["ufw", "status"], capture_output=True, text=True)
-        if "active" in ufw_check.stdout:
-            print("  ⚠️ UFW is ACTIVE. Ensuring 51820/udp is allowed...")
-            subprocess.run(["ufw", "allow", "51820/udp"], check=False)
+        # Step 1: Punch hole in INPUT chain (Position 1 for Handshake)
+        print("  Punching hole in INPUT chain (UDP 51820)...")
+        subprocess.run(["iptables", "-I", "INPUT", "1", "-p", "udp", "--dport", "51820", "-m", "comment", "--comment", "WireGuard Handshake", "-j", "ACCEPT"], check=False)
 
-        # Step 6: Forwarding rules (using -I to ensure priority over Docker)
-        print("  Punching holes in Local Firewall (INPUT/FORWARD)...")
-        subprocess.run(["iptables", "-I", "INPUT", "1", "-p", "udp", "--dport", "51820", "-m", "comment", "--comment", "VPN Handshake", "-j", "ACCEPT"], check=False)
+        # Step 6: Forwarding rules (Position 1)
+        print("  Injecting high-priority forwarding...")
         subprocess.run(["iptables", "-I", "FORWARD", "1", "-i", "wg0", "-o", start_interface, "-j", "ACCEPT"], check=False)
         subprocess.run(["iptables", "-I", "FORWARD", "1", "-i", start_interface, "-o", "wg0", "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT"], check=False)
         
         # Step 5: MASQUERADE rule
-        print("  Enabling NAT Masquerade...")
+        print("  Enabling MASQUERADE NAT...")
         subprocess.run(["iptables", "-t", "nat", "-I", "POSTROUTING", "1", "-s", "10.50.0.0/24", "-o", start_interface, "-j", "MASQUERADE"], check=False)
         
-        # Step 7: TCP MSS Clamping (The Fix for No-Internet in AWS)
+        # Step 7: TCP MSS Clamping (AWS Essential)
         print("  Applying TCP MSS Clamping...")
         subprocess.run(["iptables", "-t", "mangle", "-I", "FORWARD", "-p", "tcp", "--tcp-flags", "SYN,RST", "SYN", "-j", "TCPMSS", "--clamp-mss-to-pmtu"], check=False)
 
         # Persist Rules (Runbook Step 6)
         print("  Saving persistent firewall rules...")
         subprocess.run(["netfilter-persistent", "save"], check=False)
+    except Exception as e:
+        print(f"  ⚠️ Warning: Firewall enforcement failed: {e}")
     except Exception as e:
         print(f"  ⚠️ Warning: Firewall enforcement failed: {e}")
 

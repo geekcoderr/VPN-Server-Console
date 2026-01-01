@@ -1165,7 +1165,10 @@
                 }
                 if (tx) tx.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg> ${formatBytes(hub.transfer_tx)}`;
                 if (rx) rx.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg> ${formatBytes(hub.transfer_rx)}`;
-                if (hs && hub.latest_handshake) hs.innerText = new Date(hub.latest_handshake * 1000).toLocaleString();
+                if (hs) {
+                    hs.innerText = hub.latest_handshake ? new Date(hub.latest_handshake * 1000).toLocaleString() : 'Awaiting Secure Handshake...';
+                    hs.style.color = hub.connected ? 'var(--text-light)' : 'var(--text-dim)';
+                }
             }
             document.getElementById('activeSessions').innerText = activeNodes;
         }
