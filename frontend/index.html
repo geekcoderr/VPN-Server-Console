@@ -1207,7 +1207,12 @@
             }
         }
 
+        let lastLoad = 0;
         async function loadNodes() {
+            // Anti-Spam: Prevent more than 1 fetch per 2 seconds
+            if (Date.now() - lastLoad < 2000) return;
+            lastLoad = Date.now();
+
             try {
                 const res = await fetch('/api/users');
                 if (!res.ok) throw new Error("Database Fetch Failed");
