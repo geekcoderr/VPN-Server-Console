@@ -7,7 +7,7 @@ Type=simple
 User=root
 Group=root
 WorkingDirectory=/opt/vpn-control
-ExecStart=/opt/vpn-control/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+ExecStart=/opt/vpn-control/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
 Restart=always
 RestartSec=5
 
@@ -18,7 +18,7 @@ ProtectHome=read-only
 PrivateTmp=true
 
 # Environment
-Environment="VPN_ENDPOINT=vpn.example.com:51820"
+Environment="VPN_ENDPOINT=wg.nishantmaheshwari.online:51820"
 Environment="SESSION_SECRET=change-this-use-openssl-rand-hex-32"
 
 [Install]
