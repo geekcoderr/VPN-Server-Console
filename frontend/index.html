@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GeeksVPN - Ultimate Node Dashboard</title>
+    <title>Anonymous Geeks VPN - Ultimate Dashboard</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -89,9 +89,10 @@
         }
 
         .logo-box {
-            width: 44px;
-            height: 44px;
-            background: url('logo.png') center/cover no-repeat;
+            width: 48px;
+            height: 48px;
+            background: var(--glass-hover);
+            border: 1px solid var(--glass-border);
             border-radius: 14px;
             display: flex;
             align-items: center;
@@ -99,26 +100,33 @@
             box-shadow: 0 0 20px var(--accent-glow);
         }
 
+        .logo-box svg {
+            width: 32px;
+            height: 32px;
+            filter: drop-shadow(0 0 8px var(--accent));
+        }
+
         .brand h1 {
-            font-size: 26px;
-            letter-spacing: -1px;
+            font-size: 24px;
+            letter-spacing: -1.5px;
             margin: 0;
-            background: linear-gradient(to right, #fff, var(--text-dim));
+            background: linear-gradient(to right, #fff, #94a3b8);
             background-clip: text;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             font-family: 'Outfit', sans-serif;
-            font-weight: 700;
+            font-weight: 800;
+            text-transform: uppercase;
         }
 
         .brand-sub {
             font-size: 10px;
             color: var(--accent);
             text-transform: uppercase;
-            letter-spacing: 2px;
+            letter-spacing: 3px;
             font-weight: 700;
-            margin-top: -6px;
-            opacity: 0.8;
+            margin-top: -4px;
+            opacity: 0.9;
         }
 
         .user-nav {
@@ -700,7 +708,89 @@
             transform: scale(1.1);
         }
 
-        /* Toasts */
+        /* Mobile Responsiveness Overdrive */
+        @media (max-width: 900px) {
+            .navbar {
+                padding: 15px 20px;
+            }
+
+            .brand h1 {
+                font-size: 20px;
+            }
+
+            .brand-sub {
+                font-size: 8px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(1, 1fr);
+                gap: 15px;
+                padding: 0 20px;
+            }
+
+            .console-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 20px;
+                padding: 0 20px;
+            }
+
+            .btn-create {
+                width: 100%;
+                justify-content: center;
+            }
+
+            /* Hide non-essential columns on mobile */
+            th:nth-child(5),
+            td:nth-child(5),
+            /* Endpoint */
+            th:nth-child(6),
+            td:nth-child(6),
+            /* Transfer */
+            th:nth-child(7),
+            td:nth-child(7)
+
+            /* Handshake */
+                {
+                display: none;
+            }
+
+            .table-view {
+                margin: 0 10px;
+                border-radius: 20px;
+            }
+
+            th,
+            td {
+                padding: 16px 10px;
+            }
+
+            .node-name {
+                font-size: 14px;
+            }
+
+            .status-badge {
+                padding: 4px 10px;
+                font-size: 10px;
+            }
+
+            .action-tray {
+                gap: 6px;
+            }
+
+            .action-btn {
+                padding: 0 10px;
+                height: 38px;
+                font-size: 11px;
+            }
+        }
+
+        @media (min-width: 600px) and (max-width: 900px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
         #toast {
             position: fixed;
             bottom: 40px;
@@ -761,10 +851,20 @@
 
     <nav class="navbar">
         <div class="brand">
-            <div class="logo-box"></div>
+            <div class="logo-box">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 22C12 22 20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z" fill="var(--accent)"
+                        fill-opacity="0.1" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                    <path d="M12 8V12" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M12 16H12.01" stroke="white" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                    <circle cx="12" cy="12" r="9" stroke="var(--accent)" stroke-width="0.5" stroke-dasharray="2 2" />
+                </svg>
+            </div>
             <div>
-                <h1>GeeksVPN</h1>
-                <div class="brand-sub">Powered by WireGuard</div>
+                <h1>Anonymous Geeks</h1>
+                <div class="brand-sub">Secure Tunnel Network</div>
             </div>
         </div>
         <div class="user-nav">

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GeeksVPN - Secure Identity Auth</title>
+    <title>Anonymous Geeks - Portal Login</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -73,13 +73,20 @@
         .logo-box {
             width: 72px;
             height: 72px;
-            background: url('logo.png') center/cover no-repeat;
+            background: var(--glass-hover);
+            border: 1px solid var(--glass-border);
             border-radius: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
             margin: 0 auto 20px;
             box-shadow: 0 10px 30px var(--accent-glow);
+        }
+
+        .logo-box svg {
+            width: 40px;
+            height: 40px;
+            filter: drop-shadow(0 0 10px var(--accent));
         }
 
         h1 {
@@ -197,11 +204,16 @@
     <div class="login-card">
         <div class="header">
             <div class="logo-box">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 22C12 22 20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z" fill="var(--accent)"
+                        fill-opacity="0.1" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                    <path d="M12 8V12" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M12 16H12.01" stroke="white" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round" />
                 </svg>
             </div>
-            <h1>GeeksVPN Portal</h1>
+            <h1>Anonymous Geeks</h1>
             <p>Verification Required to Access Mesh</p>
         </div>
 
@@ -229,7 +241,7 @@
             <button type="submit" class="btn-auth">Establish Terminal</button>
         </form>
 
-        <div class="footer">GeeksVPN v2.2.0 &copy; 2026 Crafted by Geeks</div>
+        <div class="footer">Anonymous Geeks v2.3.0 &copy; 2026 Crafted by Geeks</div>
     </div>
 
     <script>
