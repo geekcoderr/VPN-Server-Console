@@ -84,6 +84,10 @@ async def stats_websocket(websocket: WebSocket):
     """WebSocket for live VPN stats."""
     await manager.connect(websocket)
     try:
+        # Send IMMEDIATE initial state to the new client
+        initial_data = await get_connected_peers(use_cache=True)
+        await websocket.send_json({"type": "metrics", "data": initial_data})
+        
         while True:
             # Keep connection alive
             await websocket.receive_text()
