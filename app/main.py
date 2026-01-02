@@ -30,10 +30,11 @@ async def broadcast_metrics():
     
     while True:
         try:
-            connected = await get_connected_peers()
+            # FORCE a fresh poll from WireGuard system to update the global cache
+            connected = await get_connected_peers(use_cache=False)
             await manager.broadcast({"type": "metrics", "data": connected})
             
-            # Persist to DB
+            # Persist to DB in a single transaction
             async with AsyncSessionLocal() as db:
                 for pubkey, stats in connected.items():
                     await db.execute(

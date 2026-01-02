@@ -115,14 +115,23 @@ def allocate_ip(used_ips: set) -> str:
     raise WireGuardError("No available IP addresses in VPN subnet")
 
 
-async def get_connected_peers() -> Dict[str, dict]:
+# Global Cache for WireGuard Metrics
+_metrics_cache: Dict[str, dict] = {}
+
+async def get_connected_peers(use_cache: bool = True) -> Dict[str, dict]:
     """
-    Get currently connected peers from WireGuard runtime.
+    Get currently connected peers from WireGuard runtime or cache.
     Returns dict mapping public_key -> {endpoint, latest_handshake, transfer_rx, transfer_tx}
+    Set use_cache=False to force a fresh poll from the system.
     """
+    global _metrics_cache
+    
+    if use_cache and _metrics_cache:
+        return _metrics_cache
+
     code, stdout, stderr = await run_command(["wg", "show", WG_INTERFACE, "dump"])
     if code != 0:
-        return {}
+        return _metrics_cache # Return stale cache if command fails
     
     peers = {}
     lines = stdout.strip().split('\n')
@@ -145,6 +154,8 @@ async def get_connected_peers() -> Dict[str, dict]:
                 'connected': latest_handshake is not None and latest_handshake > 0
             }
     
+    # Update global cache
+    _metrics_cache = peers
     return peers
 
 
