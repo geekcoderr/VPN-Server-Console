@@ -3,6 +3,7 @@ User lifecycle management module.
 Handles creation, deletion, enable/disable of VPN users.
 """
 import re
+from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, validator
 
