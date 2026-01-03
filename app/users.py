@@ -81,14 +81,36 @@ async def list_users(admin: str = Depends(get_current_admin)):
     connected = await get_connected_peers()
     
     # Enrich users with connection info
-    for user in users:
+    user_list = []
+    for user_orm in users:
+        # Convert ORM object to dict
+        user = {
+            "id": user_orm.id,
+            "username": user_orm.username,
+            "public_key": user_orm.public_key,
+            "assigned_ip": user_orm.assigned_ip,
+            "client_os": user_orm.client_os,
+            "status": user_orm.status,
+            "created_at": user_orm.created_at,
+            "last_login": user_orm.last_login,
+            "total_rx": user_orm.total_rx,
+            "total_tx": user_orm.total_tx,
+        }
+        
         peer_info = connected.get(user['public_key'], {})
         user['connected'] = peer_info.get('connected', False)
         user['endpoint'] = peer_info.get('endpoint')
-        user['transfer_rx'] = peer_info.get('transfer_rx', 0)
-        user['transfer_tx'] = peer_info.get('transfer_tx', 0)
+        
+        # Merge transfer stats (WireGuard vs Historical)
+        # Note: WireGuard resets on reboot, so we should arguably accumulate, 
+        # but for now we just show what's live or in DB.
+        if peer_info.get('transfer_rx', 0) > 0:
+            user['transfer_rx'] = peer_info.get('transfer_rx')
+            user['transfer_tx'] = peer_info.get('transfer_tx')
+        
+        user_list.append(user)
     
-    return {"users": users}
+    return {"users": user_list}
 
 
 @router.post("")
