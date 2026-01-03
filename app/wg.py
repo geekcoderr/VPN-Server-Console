@@ -398,32 +398,37 @@ def generate_client_config(
 ) -> str:
     """
     Generate the client configuration file content.
-    For Linux: Adds strict sysctl hooks to prevent IPv6 leakage.
-    For Android/iOS: Uses standard config to avoid 'cannot set address' errors.
+    For Linux: Uses PostUp/PostDown for DNS (avoids resolvconf issues).
+    For Android/iOS: Uses standard config.
     """
     # Base configuration
     config = f"""[Interface]
 PrivateKey = {private_key}
 Address = {assigned_ip}/32
-DNS = {CLIENT_DNS}
-MTU = {CLIENT_MTU}
 """
-
-    # OS-Specific Strictness
+    
+    # DNS handling differs by OS
     if client_os == 'linux':
-        # Linux specific: Use sysctl hammer (most reliable for wg-quick)
-        # PostUp sets DNS via resolvconf for systems that have it
-        config += """
-# Strict IPv6 Leak Prevention (Linux)
+        # Linux: Don't use DNS= (resolvconf is inconsistent across distros)
+        # Instead, use PostUp/PostDown to directly set DNS
+        config += f"MTU = {CLIENT_MTU}\n"
+        config += f"""
+# Linux DNS & IPv6 Leak Prevention (Direct method - no resolvconf needed)
 PreUp = sysctl -w net.ipv6.conf.all.disable_ipv6=1
+PostUp = cp /etc/resolv.conf /etc/resolv.conf.wg-backup && echo "nameserver {CLIENT_DNS}" > /etc/resolv.conf
+PostDown = mv /etc/resolv.conf.wg-backup /etc/resolv.conf || true
 PostDown = sysctl -w net.ipv6.conf.all.disable_ipv6=0
 """
         allowed_ips = "0.0.0.0/0"
-    elif client_os in ('macos', 'ios', 'android', 'windows'):
-        # Modern apps on these OSes handle dual-stack AllowedIPs well
-        allowed_ips = "0.0.0.0/0, ::/0"
     else:
-        allowed_ips = "0.0.0.0/0"
+        # Non-Linux: Use standard DNS directive
+        config += f"DNS = {CLIENT_DNS}\n"
+        config += f"MTU = {CLIENT_MTU}\n"
+        
+        if client_os in ('macos', 'ios', 'android', 'windows'):
+            allowed_ips = "0.0.0.0/0, ::/0"
+        else:
+            allowed_ips = "0.0.0.0/0"
 
     config += f"""
 [Peer]
