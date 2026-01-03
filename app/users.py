@@ -84,7 +84,7 @@ async def list_users(admin: str = Depends(get_current_admin)):
     # Enrich users with connection info
     user_list = []
     for user_orm in users:
-        # Convert ORM object to dict
+        # Map to dict for JSON response
         user = {
             "id": user_orm.id,
             "username": user_orm.username,
@@ -92,14 +92,14 @@ async def list_users(admin: str = Depends(get_current_admin)):
             "assigned_ip": user_orm.assigned_ip,
             "client_os": user_orm.client_os,
             "status": user_orm.status,
-            "created_at": user_orm.created_at,
-            "last_login": user_orm.last_login,
+            "created_at": user_orm.created_at.isoformat() if hasattr(user_orm.created_at, 'isoformat') else user_orm.created_at,
+            "last_login": user_orm.last_login.isoformat() if user_orm.last_login else None,
             "transfer_rx": user_orm.total_rx,
             "transfer_tx": user_orm.total_tx,
             "last_endpoint": user_orm.last_endpoint,
         }
         
-        peer_info = connected.get(user['public_key'], {})
+        peer_info = connected.get(user_orm.public_key, {})
         user['connected'] = peer_info.get('connected', False)
         
         # Priority 1: Use live endpoint from WireGuard
@@ -112,7 +112,7 @@ async def list_users(admin: str = Depends(get_current_admin)):
             user['transfer_rx'] = peer_info.get('transfer_rx')
             user['transfer_tx'] = peer_info.get('transfer_tx')
         
-        # Update Handshake/Login time (Convert to ISO for Frontend)
+        # Update Handshake/Login time
         h_time = peer_info.get('latest_handshake')
         if h_time:
             user['last_login'] = datetime.fromtimestamp(h_time).isoformat()
@@ -155,11 +155,10 @@ async def create_vpn_user(
         assigned_ip = allocate_ip(used_ips)
         
         # Add to WireGuard config FIRST (this is the critical operation)
-        # If this fails, nothing is saved to DB
         await add_peer_to_config(public_key, assigned_ip, username)
         
-        # Now save to database (WireGuard already has the peer)
-        await create_user(username, public_key, assigned_ip, client_os)
+        # Save to database including Private Key
+        await create_user(username, public_key, private_key, assigned_ip, client_os)
         
         # Get server public key for client config
         server_public_key = await get_server_public_key()
@@ -173,11 +172,19 @@ async def create_vpn_user(
         # Audit log
         log_user_created(username, assigned_ip, admin)
         
-        # Fetch created user
-        user = await get_user_by_username(username)
+        # Fetch fresh object
+        user_orm = await get_user_by_username(username)
         
         return {
-            "user": user,
+            "user": {
+                "id": user_orm.id,
+                "username": user_orm.username,
+                "public_key": user_orm.public_key,
+                "assigned_ip": user_orm.assigned_ip,
+                "client_os": user_orm.client_os,
+                "status": user_orm.status,
+                "created_at": user_orm.created_at.isoformat() if hasattr(user_orm.created_at, 'isoformat') else user_orm.created_at
+            },
             "client_config": client_config,
             "qr_code": qr_code
         }
@@ -202,8 +209,8 @@ async def delete_vpn_user(
         raise HTTPException(status_code=404, detail="User not found")
     
     try:
-        # Remove from WireGuard config (idempotent - won't fail if not present)
-        await remove_peer_from_config(user['public_key'])
+        # Remove from WireGuard config
+        await remove_peer_from_config(user.public_key)
         
         # Delete from database
         await db_delete_user(username)
@@ -232,15 +239,15 @@ async def toggle_user_status(
         raise HTTPException(status_code=404, detail="User not found")
     
     try:
-        if user['status'] == 'active':
+        if user.status == 'active':
             # Disable: remove from config
-            await remove_peer_from_config(user['public_key'])
+            await remove_peer_from_config(user.public_key)
             await update_user_status(username, 'disabled')
             log_user_disabled(username, admin)
             return {"message": f"User {username} disabled", "status": "disabled"}
         else:
             # Re-enable: add back to config
-            await add_peer_to_config(user['public_key'], user['assigned_ip'], username)
+            await add_peer_to_config(user.public_key, user.assigned_ip, username)
             await update_user_status(username, 'active')
             log_user_enabled(username, admin)
             return {"message": f"User {username} enabled", "status": "active"}
@@ -257,84 +264,97 @@ async def get_user_config(
     admin: str = Depends(get_current_admin)
 ):
     """
-    Regenerate config for an existing user.
-    WARNING: This generates a NEW keypair. The old config will stop working.
+    Fetch existing config OR regenerate if missing.
+    No longer disconnects user if config already exists.
     """
     user = await get_user_by_username(username)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    if user['status'] != 'active':
-        raise HTTPException(status_code=400, detail="Cannot regenerate config for disabled user")
-    
     try:
-        # Generate new keypair
-        private_key, public_key = await generate_keypair()
+        # If we have a stored private key, use it!
+        if user.private_key:
+            private_key = user.private_key
+            public_key = user.public_key
+        else:
+            # Migration path: Regenerate and store for legacy users
+            private_key, public_key = await generate_keypair()
+            await remove_peer_from_config(user.public_key)
+            await add_peer_to_config(public_key, user.assigned_ip)
+            
+            async with AsyncSessionLocal() as db:
+                await db.execute(
+                    update(User).where(User.username == username).values(
+                        public_key=public_key,
+                        private_key=private_key
+                    )
+                )
+                await db.commit()
         
-        # Remove old peer (idempotent)
-        await remove_peer_from_config(user['public_key'])
-        
-        # Add new peer
-        await add_peer_to_config(public_key, user['assigned_ip'])
-        
-        # Update database with new public key
-        async with AsyncSessionLocal() as db:
-            await db.execute(
-                update(User).where(User.username == username).values(public_key=public_key)
-            )
-            await db.commit()
-        
-        # Get server public key
         server_public_key = await get_server_public_key()
-        
-        # Generate client config using the stored client_os
         client_config = generate_client_config(
             private_key, 
-            user['assigned_ip'], 
+            user.assigned_ip, 
             server_public_key,
-            client_os=user.get('client_os', 'android')
+            client_os=user.client_os
         )
-        
-        # Generate QR
         qr_code = generate_qr_data_uri(client_config)
         
         return {
             "client_config": client_config,
-            "qr_code": qr_code
+            "qr_code": qr_code,
+            "recreated": not bool(user.private_key)
         }
-        
-    except WireGuardError as e:
-        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to regenerate config: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/{username}/rotate")
+async def rotate_user_keys(
+    username: str,
+    admin: str = Depends(get_current_admin)
+):
+    """
+    Forcefully invalidate old keys and generate new ones.
+    Useful if a user's config is leaked.
+    """
+    user = await get_user_by_username(username)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    try:
+        private_key, public_key = await generate_keypair()
+        await remove_peer_from_config(user.public_key)
+        await add_peer_to_config(public_key, user.assigned_ip)
+        
+        async with AsyncSessionLocal() as db:
+            await db.execute(
+                update(User).where(User.username == username).values(
+                    public_key=public_key,
+                    private_key=private_key
+                )
+            )
+            await db.commit()
+            
+        return {"message": "Keys rotated successfully. Client must re-import config."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/{username}/sync")
 async def sync_user_to_config(
     username: str,
     admin: str = Depends(get_current_admin)
 ):
-    """
-    Sync a user from database to WireGuard config.
-    Use this to fix users that exist in DB but not in wg0.conf.
-    """
+    """Sync a user from database to WireGuard config."""
     user = await get_user_by_username(username)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    if user['status'] != 'active':
+    if user.status != 'active':
         raise HTTPException(status_code=400, detail="User is disabled")
     
     try:
-        # Check if already in config
-        if peer_exists_in_config(user['public_key']):
-            return {"message": "User already synced", "status": "ok"}
-        
-        # Add to config
-        await add_peer_to_config(user['public_key'], user['assigned_ip'])
-        
+        await add_peer_to_config(user.public_key, user.assigned_ip)
         return {"message": f"User {username} synced to WireGuard", "status": "synced"}
-        
     except WireGuardError as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -343,20 +363,18 @@ async def sync_user_to_config(
 async def sync_all_users(admin: str = Depends(get_current_admin)):
     """
     Sync ALL active users from DB to WireGuard config.
-    Useful if multiple users are missing from wg0.conf.
     """
     users = await get_all_users()
     synced_count = 0
     errors = []
     
     for user in users:
-        if user['status'] == 'active':
+        if user.status == 'active':
             try:
-                if not peer_exists_in_config(user['public_key']):
-                    await add_peer_to_config(user['public_key'], user['assigned_ip'])
-                    synced_count += 1
+                await add_peer_to_config(user.public_key, user.assigned_ip)
+                synced_count += 1
             except Exception as e:
-                errors.append(f"{user['username']}: {str(e)}")
+                errors.append(f"{user.username}: {str(e)}")
     
     return {
         "message": f"Synced {synced_count} users",

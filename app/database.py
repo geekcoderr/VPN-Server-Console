@@ -27,6 +27,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     username: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     public_key: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    private_key: Mapped[Optional[str]] = mapped_column(Text, nullable=True) # Stored for viewing (as requested)
     assigned_ip: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     client_os: Mapped[str] = mapped_column(String(50), default="android")
     status: Mapped[str] = mapped_column(String(20), default="active")
@@ -44,13 +45,19 @@ async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         
-        # Simple migration: check for last_endpoint column
+        # Migrations
         try:
-            # We use a raw SQL check because SQLAlchemy models don't easily reveal missing columns on existing tables
+            # 1. last_endpoint
             result = await conn.execute(text("SHOW COLUMNS FROM users LIKE 'last_endpoint'"))
             if not result.fetchone():
-                print("Migration: Adding 'last_endpoint' column to 'users' table...")
+                print("Migration: Adding 'last_endpoint' column...")
                 await conn.execute(text("ALTER TABLE users ADD COLUMN last_endpoint VARCHAR(255) NULL"))
+            
+            # 2. private_key
+            result = await conn.execute(text("SHOW COLUMNS FROM users LIKE 'private_key'"))
+            if not result.fetchone():
+                print("Migration: Adding 'private_key' column...")
+                await conn.execute(text("ALTER TABLE users ADD COLUMN private_key TEXT NULL"))
         except Exception as e:
             print(f"Migration error: {e}")
 
@@ -73,45 +80,25 @@ async def create_admin(username: str, password_hash: str):
         await session.commit()
 
 async def get_all_users():
+    """Unified: Get all user ORM objects."""
     async with AsyncSessionLocal() as session:
         result = await session.execute(select(User).order_by(User.created_at.desc()))
-        users = result.scalars().all()
-        return [{
-            "id": u.id, 
-            "username": u.username, 
-            "public_key": u.public_key, 
-            "assigned_ip": u.assigned_ip,
-            "client_os": u.client_os,
-            "status": u.status,
-            "created_at": u.created_at.isoformat(),
-            "total_rx": u.total_rx,
-            "total_tx": u.total_tx,
-            "last_login": u.last_login.isoformat() if u.last_login else None,
-            "last_endpoint": u.last_endpoint
-        } for u in users]
+        return result.scalars().all()
 
 async def get_user_by_username(username: str):
     async with AsyncSessionLocal() as session:
         result = await session.execute(select(User).filter(User.username == username))
-        u = result.scalar_one_or_none()
-        if not u: return None
-        return {
-            "id": u.id, 
-            "username": u.username, 
-            "public_key": u.public_key, 
-            "assigned_ip": u.assigned_ip,
-            "client_os": u.client_os,
-            "status": u.status,
-            "created_at": u.created_at.isoformat(),
-            "total_rx": u.total_rx,
-            "total_tx": u.total_tx,
-            "last_login": u.last_login.isoformat() if u.last_login else None,
-            "last_endpoint": u.last_endpoint
-        }
+        return result.scalar_one_or_none()
 
-async def create_user(username: str, public_key: str, assigned_ip: str, client_os: str = 'android'):
+async def create_user(username: str, public_key: str, private_key: str, assigned_ip: str, client_os: str = 'android'):
     async with AsyncSessionLocal() as session:
-        user = User(username=username, public_key=public_key, assigned_ip=assigned_ip, client_os=client_os)
+        user = User(
+            username=username, 
+            public_key=public_key, 
+            private_key=private_key, 
+            assigned_ip=assigned_ip, 
+            client_os=client_os
+        )
         session.add(user)
         await session.commit()
 
