@@ -295,31 +295,27 @@ AllowedIPs = {allowed_ip}/32"""
 
 async def remove_peer_from_config(public_key: str) -> None:
     """
-    Remove a [Peer] block from wg0.conf by public key.
+    Remove a [Peer] block from wg0.conf AND explicitly purge from Kernel.
+    This is a double-tap removal to prevent Zombie peers.
     """
+    # 1. EXPLICIT KERNEL REMOVAL (Immediate action)
+    print(f"🧹 Purging peer {public_key[:8]}... from Kernel")
+    await run_command(["wg", "set", WG_INTERFACE, "peer", public_key, "remove"])
+
+    # 2. FILE SYSTEM SYNC
     fd = os.open(str(WG_CONFIG_PATH), os.O_RDWR)
     try:
         fcntl.flock(fd, fcntl.LOCK_EX)
         
         content = read_config()
         
-        # Check if peer exists
+        # Check if peer exists in file
         if public_key not in content:
-            # Peer not in config - just return success (idempotent)
             return
         
         # Parse and filter
         interface, peers = parse_config(content)
-        original_count = len(peers)
         peers = [p for p in peers if p.get('public_key') != public_key]
-        
-        if len(peers) == original_count:
-            # Peer not found - already removed
-            return
-        
-        # Backup
-        backup_path = WG_CONFIG_PATH.with_suffix('.conf.bak')
-        shutil.copy2(WG_CONFIG_PATH, backup_path)
         
         # Rebuild config
         new_content = build_config(interface, peers)
@@ -339,13 +335,9 @@ async def remove_peer_from_config(public_key: str) -> None:
             if os.path.exists(temp_path):
                 os.unlink(temp_path)
             raise
-        
-        # Reload
-        success, error = await reload_wireguard()
-        if not success:
-            shutil.copy2(backup_path, WG_CONFIG_PATH)
-            await reload_wireguard()
-            raise WireGuardError(f"WireGuard reload failed: {error}")
+            
+        # Optional: Syncconf to be absolutely sure
+        await reload_wireguard()
             
     finally:
         fcntl.flock(fd, fcntl.LOCK_UN)
