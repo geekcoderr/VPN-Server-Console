@@ -123,8 +123,14 @@ async def get_connected_peers(use_cache: bool = True) -> Dict[str, dict]:
     Get currently connected peers from WireGuard runtime or cache.
     Returns dict mapping public_key -> {endpoint, latest_handshake, transfer_rx, transfer_tx}
     Set use_cache=False to force a fresh poll from the system.
+    
+    CONNECTED LOGIC: A peer is "online" if their last handshake was within 180 seconds (3 mins).
+    This accounts for WireGuard's PersistentKeepalive (25s) with buffer for network jitter.
     """
+    import time
     global _metrics_cache
+    
+    HANDSHAKE_TIMEOUT = 180  # Seconds - if handshake is older than this, peer is "offline"
     
     if use_cache and _metrics_cache:
         return _metrics_cache
@@ -135,6 +141,7 @@ async def get_connected_peers(use_cache: bool = True) -> Dict[str, dict]:
     
     peers = {}
     lines = stdout.strip().split('\n')
+    now = int(time.time())
     
     # Skip first line (interface info)
     for line in lines[1:]:
@@ -146,12 +153,18 @@ async def get_connected_peers(use_cache: bool = True) -> Dict[str, dict]:
             transfer_rx = int(parts[5]) if len(parts) > 5 else 0
             transfer_tx = int(parts[6]) if len(parts) > 6 else 0
             
+            # FIXED: Check if handshake is RECENT, not just if it exists
+            is_connected = False
+            if latest_handshake is not None and latest_handshake > 0:
+                handshake_age = now - latest_handshake
+                is_connected = handshake_age < HANDSHAKE_TIMEOUT
+            
             peers[public_key] = {
                 'endpoint': endpoint,
                 'latest_handshake': latest_handshake,
                 'transfer_rx': transfer_rx,
                 'transfer_tx': transfer_tx,
-                'connected': latest_handshake is not None and latest_handshake > 0
+                'connected': is_connected
             }
     
     # Update global cache
