@@ -1,6 +1,6 @@
-# Geeks Tunnel: System Architecture & Deployment Guide
+# GeekSTunnel: System Architecture & Deployment Guide
 
-This document is a comprehensive guide to understanding the "Geeks Tunnel" VPN infrastructure. usage of this guide will allow you to replicate the entire stack on any Linux server (e.g., in Mumbai/Singapore) with full understanding of each component.
+This document is a comprehensive guide to understanding the "GeekSTunnel" VPN infrastructure. usage of this guide will allow you to replicate the entire stack on any Linux server (e.g., in Mumbai/Singapore) with full understanding of each component.
 
 ---
 
