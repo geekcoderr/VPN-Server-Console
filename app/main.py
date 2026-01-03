@@ -57,6 +57,12 @@ async def broadcast_metrics():
     
     while True:
         try:
+            # 0. CHECK ACTIVE SESSIONS
+            # If no admin is watching, don't waste CPU polling WireGuard
+            if len(manager.active_connections) == 0:
+                await asyncio.sleep(10)
+                continue
+
             # 1. FAST LOOP (3s): Updates Global Cache & UI
             # Force fresh poll to get latest handshake IMMEDIATELY
             connected = await get_connected_peers(use_cache=False)
