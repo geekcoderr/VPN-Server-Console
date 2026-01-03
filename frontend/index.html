@@ -1312,30 +1312,64 @@
             websocket.onclose = () => setTimeout(startLiveFeeds, 5000);
         }
 
+        let lastMetricsTimestamp = Date.now();
+        let lastMetricsData = {};
+
         function syncLiveMetrics(metrics) {
             let activeNodes = 0;
-            for (const [key, hub] of Object.entries(metrics)) {
-                if (hub.connected) activeNodes++;
+            let currentTotalBytes = 0;
+            let currentSpeed = 0;
+            const now = Date.now();
+            const timeDelta = (now - lastMetricsTimestamp) / 1000; // in seconds
 
-                const dot = document.getElementById(`pulse-${key}`);
-                const txt = document.getElementById(`pulse-text-${key}`);
-                const tx = document.getElementById(`tx-${key}`);
-                const rx = document.getElementById(`rx-${key}`);
-                const hs = document.getElementById(`handshake-${key}`);
+            if (timeDelta > 0) { // Avoid divide by zero
+                for (const [key, hub] of Object.entries(metrics)) {
+                    if (hub.connected) activeNodes++;
 
-                if (dot) dot.className = `pulse-dot ${hub.connected ? 'online' : ''}`;
-                if (txt) {
-                    txt.innerText = hub.connected ? 'ONLINE' : 'OFFLINE';
-                    txt.style.color = hub.connected ? 'var(--success)' : 'var(--text-dim)';
+                    const totalNodeBytes = (hub.transfer_rx || 0) + (hub.transfer_tx || 0);
+                    currentTotalBytes += totalNodeBytes;
+
+                    // Calculate node speed
+                    const lastNodeBytes = lastMetricsData[key] || totalNodeBytes;
+                    const nodeDelta = totalNodeBytes - lastNodeBytes;
+                    // Only count positive deltas (ignores restarts/resets)
+                    if (nodeDelta > 0) {
+                        currentSpeed += nodeDelta;
+                    }
+
+                    // Update UI for each node
+                    const dot = document.getElementById(`pulse-${key}`);
+                    const txt = document.getElementById(`pulse-text-${key}`);
+                    const tx = document.getElementById(`tx-${key}`);
+                    const rx = document.getElementById(`rx-${key}`);
+                    const hs = document.getElementById(`handshake-${key}`);
+
+                    if (dot) dot.className = `pulse-dot ${hub.connected ? 'online' : ''}`;
+                    if (txt) {
+                        txt.innerText = hub.connected ? 'ONLINE' : 'OFFLINE';
+                        txt.style.color = hub.connected ? 'var(--success)' : 'var(--text-dim)';
+                    }
+                    if (tx) tx.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg> ${formatBytes(hub.transfer_tx)}`;
+                    if (rx) rx.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg> ${formatBytes(hub.transfer_rx)}`;
+                    if (hs) {
+                        hs.innerText = hub.latest_handshake ? new Date(hub.latest_handshake * 1000).toLocaleString() : 'Awaiting Secure Handshake...';
+                        hs.style.color = hub.connected ? 'var(--text-light)' : 'var(--text-dim)';
+                    }
+
+                    // Store for next loop
+                    lastMetricsData[key] = totalNodeBytes;
                 }
-                if (tx) tx.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg> ${formatBytes(hub.transfer_tx)}`;
-                if (rx) rx.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg> ${formatBytes(hub.transfer_rx)}`;
-                if (hs) {
-                    hs.innerText = hub.latest_handshake ? new Date(hub.latest_handshake * 1000).toLocaleString() : 'Awaiting Secure Handshake...';
-                    hs.style.color = hub.connected ? 'var(--text-light)' : 'var(--text-dim)';
-                }
+
+                // Global Stats Updates
+                document.getElementById('activeSessions').innerText = activeNodes;
+                document.getElementById('totalTraffic').innerText = formatBytes(currentTotalBytes); // Accumulated
+
+                // Real-time Bandwidth (Bytes / TimeDelta)
+                const bandwidthBps = currentSpeed / timeDelta;
+                document.getElementById('peakBandwidth').innerText = formatBytes(bandwidthBps) + '/s';
             }
-            document.getElementById('activeSessions').innerText = activeNodes;
+
+            lastMetricsTimestamp = now;
         }
 
         /** PREMIUM CUSTOM MODALS **/
