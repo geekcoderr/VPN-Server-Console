@@ -130,7 +130,7 @@ async def get_connected_peers(use_cache: bool = True) -> Dict[str, dict]:
     import time
     global _metrics_cache
     
-    HANDSHAKE_TIMEOUT = 60  # Seconds - faster offline detection (miss 2-3 keepalives = offline)
+    HANDSHAKE_TIMEOUT = 180  # Seconds - accounts for mobile battery saving & jitter
     
     if use_cache and _metrics_cache:
         return _metrics_cache
@@ -433,18 +433,22 @@ PersistentKeepalive = {PERSISTENT_KEEPALIVE}
 
 async def sync_wireguard_state():
     """
-    CRITICAL RECOVERY: Complete Homeostatic Sync.
+    ULTIMATE HOMEEOSTATIC SYNC:
     1. Removes any peer in Kernel not in DB.
-    2. Updates/Adds all active users from DB.
+    2. Overwrites wg0.conf to match DB exactly (Immune System).
+    3. Updates/Adds all active users from DB.
     """
     from .database import get_all_users
+    import tempfile
+    import shutil
     
-    print("🔄 STARTING COMPREHENSIVE MESH SYNC...")
+    print("🔄 STARTING COMPREHENSIVE MESH SYNC (v3.0.9)...")
     try:
         # 1. Get Truth from DB
         users = await get_all_users()
-        db_keys = {u.public_key for u in users if u.status == 'active'}
-        db_user_map = {u.public_key: u for u in users if u.status == 'active'}
+        active_users = [u for u in users if u.status == 'active']
+        db_keys = {u.public_key for u in active_users}
+        db_user_map = {u.public_key: u for u in active_users}
 
         # 2. Get Current Kernel State
         code, out, err = await run_command(["wg", "show", WG_INTERFACE, "peers"])
@@ -456,11 +460,39 @@ async def sync_wireguard_state():
         # 3. IDENTIFY ZOMBIES (In Kernel but NOT in DB active list)
         zombies = kernel_keys - db_keys
         if zombies:
-            print(f"🧟 Found {len(zombies)} Zombie peers. Purging...")
+            print(f"🧟 Found {len(zombies)} Zombie peers in Kernel. Purging...")
             for z_key in zombies:
                 await run_command(["wg", "set", WG_INTERFACE, "peer", z_key, "remove"])
 
-        # 4. ENFORCE ACTIVE PEERS
+        # 4. HOMEOSTATIC FILE SYNC (Overhaul wg0.conf)
+        print("💾 Hardening File System (Immune System Sync)...")
+        content = read_config()
+        interface_cfg, _ = parse_config(content)
+        
+        # Build new peers list for file
+        new_file_peers = []
+        for u in active_users:
+            new_file_peers.append({
+                'public_key': u.public_key,
+                'allowed_ips': f"{u.assigned_ip}/32",
+                'persistent_keepalive': PERSISTENT_KEEPALIVE
+            })
+            
+        new_content = build_config(interface_cfg, new_file_peers)
+        
+        # Write to wg0.conf atomically
+        temp_fd, temp_path = tempfile.mkstemp(dir=WG_CONFIG_PATH.parent, prefix='.wg0.', suffix='.tmp')
+        try:
+            with os.fdopen(temp_fd, 'w') as tmp:
+                tmp.write(new_content)
+            os.chmod(temp_path, 0o600)
+            os.rename(temp_path, WG_CONFIG_PATH)
+        except Exception as file_err:
+            print(f"❌ File Sync Failed: {file_err}")
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+        
+        # 5. ENFORCE ACTIVE PEERS in Kernel
         if not db_keys:
             print("✨ All peers purged. System clean.")
             return
@@ -475,7 +507,7 @@ async def sync_wireguard_state():
         if code != 0:
             print(f"❌ ENFORCEMENT FAILED: {err}")
         else:
-            print("✅ Mesh state synchronized with Kernel.")
+            print("✅ Mesh state synchronized with Kernel and File System.")
             
     except Exception as e:
         print(f"🔥 FATAL SYNC ERROR: {e}")
