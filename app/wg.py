@@ -441,40 +441,49 @@ PersistentKeepalive = {PERSISTENT_KEEPALIVE}
 
 async def sync_wireguard_state():
     """
-    CRITICAL RECOVERY: Force-sync WireGuard interface with Database State.
-    Resolves 'AllowedIPs: (none)' corruption.
+    CRITICAL RECOVERY: Complete Homeostatic Sync.
+    1. Removes any peer in Kernel not in DB.
+    2. Updates/Adds all active users from DB.
     """
     from .database import get_all_users
     
-    print("🔄 STARTING WIREGUARD STATE SYNC...")
+    print("🔄 STARTING COMPREHENSIVE MESH SYNC...")
     try:
         # 1. Get Truth from DB
         users = await get_all_users()
-        if not users:
-            print("No users in DB to sync.")
+        db_keys = {u.public_key for u in users if u.status == 'active'}
+        db_user_map = {u.public_key: u for u in users if u.status == 'active'}
+
+        # 2. Get Current Kernel State
+        code, out, err = await run_command(["wg", "show", WG_INTERFACE, "peers"])
+        if code != 0:
+            print(f"❌ Failed to reach Kernel: {err}")
+            return
+        kernel_keys = set(out.strip().splitlines()) if out.strip() else set()
+
+        # 3. IDENTIFY ZOMBIES (In Kernel but NOT in DB active list)
+        zombies = kernel_keys - db_keys
+        if zombies:
+            print(f"🧟 Found {len(zombies)} Zombie peers. Purging...")
+            for z_key in zombies:
+                await run_command(["wg", "set", WG_INTERFACE, "peer", z_key, "remove"])
+
+        # 4. ENFORCE ACTIVE PEERS
+        if not db_keys:
+            print("✨ All peers purged. System clean.")
             return
 
-        # 2. Build Batch Command
-        # wg set wg0 peer <KEY> allowed-ips <IP>/32 peer <KEY2> ...
         cmd = ["wg", "set", WG_INTERFACE]
+        for key in db_keys:
+            user = db_user_map[key]
+            cmd.extend(["peer", key, "allowed-ips", f"{user.assigned_ip}/32"])
         
-        count = 0
-        for user in users:
-            if user.status == 'active':
-                cmd.extend(["peer", user.public_key, "allowed-ips", f"{user.assigned_ip}/32"])
-                count += 1
-        
-        if count == 0:
-            print("No active users to sync.")
-            return
-
-        # 3. Execute Atomic Update
-        print(f"⚡ Syncing {count} peers to Kernel...")
+        print(f"⚡ Enforcing {len(db_keys)} Active peers...")
         code, out, err = await run_command(cmd)
         if code != 0:
-            print(f"❌ SYNC FAILED: {err}")
+            print(f"❌ ENFORCEMENT FAILED: {err}")
         else:
-            print("✅ WireGuard Kernel State Synced Successfully.")
+            print("✅ Mesh state synchronized with Kernel.")
             
     except Exception as e:
         print(f"🔥 FATAL SYNC ERROR: {e}")

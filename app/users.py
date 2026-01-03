@@ -94,8 +94,8 @@ async def list_users(admin: str = Depends(get_current_admin)):
             "status": user_orm.status,
             "created_at": user_orm.created_at,
             "last_login": user_orm.last_login,
-            "total_rx": user_orm.total_rx,
-            "total_tx": user_orm.total_tx,
+            "transfer_rx": user_orm.total_rx,
+            "transfer_tx": user_orm.total_tx,
             "last_endpoint": user_orm.last_endpoint,
         }
         
@@ -111,7 +111,7 @@ async def list_users(admin: str = Depends(get_current_admin)):
         if peer_info.get('transfer_rx', 0) > 0:
             user['transfer_rx'] = peer_info.get('transfer_rx')
             user['transfer_tx'] = peer_info.get('transfer_tx')
-            
+        
         # Update Handshake/Login time (Convert to ISO for Frontend)
         h_time = peer_info.get('latest_handshake')
         if h_time:

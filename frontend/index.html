@@ -1441,10 +1441,16 @@
                 btnText: currentStatus === 'active' ? 'Disable' : 'Enable',
                 type: currentStatus === 'active' ? 'danger' : 'success',
                 onConfirm: async () => {
-                    const res = await fetch(`/api/users/${name}/toggle`, { method: 'PATCH' });
-                    if (res.ok) {
-                        loadNodes();
-                        triggerToast(`Access for <b class="alert-name">${name}</b> updated.`);
+                    if (isProcessing) return;
+                    isProcessing = true;
+                    try {
+                        const res = await fetch(`/api/users/${name}/toggle`, { method: 'PATCH' });
+                        if (res.ok) {
+                            loadNodes();
+                            triggerToast(`Access for <b class="alert-name">${name}</b> updated.`);
+                        }
+                    } finally {
+                        isProcessing = false;
                     }
                 }
             });
@@ -1457,21 +1463,45 @@
                 type: "danger",
                 btnText: "Confirm Revocation",
                 onConfirm: async () => {
-                    const res = await fetch(`/api/users/${name}`, { method: 'DELETE' });
-                    if (res.ok) {
-                        loadNodes();
-                        triggerToast(`Node <b class="alert-name">${name}</b> Revoked from Mesh.`);
+                    if (isProcessing) return;
+                    isProcessing = true;
+                    try {
+                        const res = await fetch(`/api/users/${name}`, { method: 'DELETE' });
+                        if (res.ok) {
+                            loadNodes();
+                            triggerToast(`Node <b class="alert-name">${name}</b> Revoked from Mesh.`);
+                        }
+                    } finally {
+                        isProcessing = false;
                     }
                 }
             });
         }
 
+        let isProcessing = false;
         async function getNodeConfig(name) {
-            const res = await fetch(`/api/users/${name}/config`);
-            if (res.ok) {
-                const data = await res.json();
-                spawnInjectedIdentity(data.qr_code, data.client_config, name);
-            }
+            if (isProcessing) return;
+
+            triggerPremiumModal({
+                title: "View & Regenerate Keys?",
+                body: `IMPORTANT: Retrieving a config file generates NEW security keys. Any device currently using this identity will DISCONNECT immediately.`,
+                btnText: "Proceed",
+                type: "warning",
+                onConfirm: async () => {
+                    isProcessing = true;
+                    try {
+                        const res = await fetch(`/api/users/${name}/config`);
+                        if (res.ok) {
+                            const data = await res.json();
+                            spawnInjectedIdentity(data.qr_code, data.client_config, name);
+                        } else {
+                            triggerToast("Failed to regenerate keys.");
+                        }
+                    } finally {
+                        isProcessing = false;
+                    }
+                }
+            });
         }
 
         function spawnInjectedIdentity(qr, raw, name) {
