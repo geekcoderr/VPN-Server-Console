@@ -405,17 +405,14 @@ def generate_client_config(
     config = f"""[Interface]
 PrivateKey = {private_key}
 Address = {assigned_ip}/32
+DNS = {CLIENT_DNS}
+MTU = {CLIENT_MTU}
 """
-    if client_os != 'linux':
-        config += f"DNS = {CLIENT_DNS}\n"
-    else:
-        config += f"# DNS = {CLIENT_DNS} (Commented for Linux compatibility)\n"
-
-    config += f"MTU = {CLIENT_MTU}\n"
 
     # OS-Specific Strictness
     if client_os == 'linux':
         # Linux specific: Use sysctl hammer (most reliable for wg-quick)
+        # PostUp sets DNS via resolvconf for systems that have it
         config += """
 # Strict IPv6 Leak Prevention (Linux)
 PreUp = sysctl -w net.ipv6.conf.all.disable_ipv6=1
