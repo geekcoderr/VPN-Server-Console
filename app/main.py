@@ -57,7 +57,7 @@ async def broadcast_metrics():
     
     while True:
         try:
-            # 1. FAST LOOP (2s): Updates Global Cache & UI
+            # 1. FAST LOOP (3s): Updates Global Cache & UI
             # Force fresh poll to get latest handshake IMMEDIATELY
             connected = await get_connected_peers(use_cache=False)
             
@@ -74,8 +74,8 @@ async def broadcast_metrics():
         except Exception as e:
             print(f"Broadcast error: {e}")
         
-        # High-Frequency Polling Sleep
-        await asyncio.sleep(2)
+        # High-Frequency Polling Sleep (3s)
+        await asyncio.sleep(3)
 
 app = FastAPI(
     title="VPN Control API",

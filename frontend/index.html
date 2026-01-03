@@ -1366,7 +1366,8 @@
 
                 // Real-time Bandwidth (Bytes / TimeDelta)
                 const bandwidthBps = currentSpeed / timeDelta;
-                document.getElementById('peakBandwidth').innerText = formatBytes(bandwidthBps) + '/s';
+                const bwEl = document.getElementById('peakBandwidth') || document.getElementById('peakBw');
+                if (bwEl) bwEl.innerText = formatBytes(bandwidthBps) + '/s';
             }
 
             lastMetricsTimestamp = now;
