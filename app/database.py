@@ -125,6 +125,12 @@ async def delete_user(username: str):
         await session.execute(delete(User).where(User.username == username))
         await session.commit()
 
+async def get_all_users():
+    """Get all users for sync."""
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(User))
+        return result.scalars().all()
+
 async def get_used_ips():
     async with AsyncSessionLocal() as session:
         result = await session.execute(select(User.assigned_ip))

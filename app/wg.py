@@ -438,3 +438,43 @@ AllowedIPs = {allowed_ips}
 PersistentKeepalive = {PERSISTENT_KEEPALIVE}
 """
     return config
+
+async def sync_wireguard_state():
+    """
+    CRITICAL RECOVERY: Force-sync WireGuard interface with Database State.
+    Resolves 'AllowedIPs: (none)' corruption.
+    """
+    from .database import get_all_users
+    
+    print("🔄 STARTING WIREGUARD STATE SYNC...")
+    try:
+        # 1. Get Truth from DB
+        users = await get_all_users()
+        if not users:
+            print("No users in DB to sync.")
+            return
+
+        # 2. Build Batch Command
+        # wg set wg0 peer <KEY> allowed-ips <IP>/32 peer <KEY2> ...
+        cmd = ["wg", "set", WG_INTERFACE]
+        
+        count = 0
+        for user in users:
+            if user.status == 'active':
+                cmd.extend(["peer", user.public_key, "allowed-ips", f"{user.assigned_ip}/32"])
+                count += 1
+        
+        if count == 0:
+            print("No active users to sync.")
+            return
+
+        # 3. Execute Atomic Update
+        print(f"⚡ Syncing {count} peers to Kernel...")
+        code, out, err = await run_command(cmd)
+        if code != 0:
+            print(f"❌ SYNC FAILED: {err}")
+        else:
+            print("✅ WireGuard Kernel State Synced Successfully.")
+            
+    except Exception as e:
+        print(f"🔥 FATAL SYNC ERROR: {e}")

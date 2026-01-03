@@ -16,6 +16,10 @@ async def lifespan(app: FastAPI):
     await init_db()
     await ensure_admin_exists()
     
+    # Critical: Enforce Kernel State Sync
+    from .wg import sync_wireguard_state
+    await sync_wireguard_state()
+    
     # Background task for broadcasting metrics
     app.state.broadcast_task = asyncio.create_task(broadcast_metrics())
     
