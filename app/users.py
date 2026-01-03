@@ -95,18 +95,26 @@ async def list_users(admin: str = Depends(get_current_admin)):
             "last_login": user_orm.last_login,
             "total_rx": user_orm.total_rx,
             "total_tx": user_orm.total_tx,
+            "last_endpoint": user_orm.last_endpoint,
         }
         
         peer_info = connected.get(user['public_key'], {})
         user['connected'] = peer_info.get('connected', False)
-        user['endpoint'] = peer_info.get('endpoint')
+        
+        # Priority 1: Use live endpoint from WireGuard
+        live_endpoint = peer_info.get('endpoint')
+        if live_endpoint:
+            user['last_endpoint'] = live_endpoint
         
         # Merge transfer stats (WireGuard vs Historical)
-        # Note: WireGuard resets on reboot, so we should arguably accumulate, 
-        # but for now we just show what's live or in DB.
         if peer_info.get('transfer_rx', 0) > 0:
             user['transfer_rx'] = peer_info.get('transfer_rx')
             user['transfer_tx'] = peer_info.get('transfer_tx')
+            
+        # Update Handshake/Login time (Convert to ISO for Frontend)
+        h_time = peer_info.get('latest_handshake')
+        if h_time:
+            user['last_login'] = datetime.fromtimestamp(h_time).isoformat()
         
         user_list.append(user)
     
