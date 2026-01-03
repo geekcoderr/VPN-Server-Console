@@ -216,10 +216,20 @@ def parse_config(content: str) -> Tuple[str, List[dict]]:
 
 
 def build_config(interface: str, peers: List[dict]) -> str:
-    """Rebuild config from interface and peers."""
+    """
+    Rebuild config from interface string and list of peer dicts.
+    Handles both 'raw' blocks and structured dictionary data.
+    """
     parts = [interface.strip()]
     for peer in peers:
-        parts.append(peer['raw'].strip())
+        if 'raw' in peer:
+            parts.append(peer['raw'].strip())
+        else:
+            # Generate from structured data
+            block = f"[Peer]\nPublicKey = {peer['public_key']}\nAllowedIPs = {peer['allowed_ips']}"
+            if 'persistent_keepalive' in peer:
+                block += f"\nPersistentKeepalive = {peer['persistent_keepalive']}"
+            parts.append(block)
     return '\n\n'.join(parts) + '\n'
 
 
@@ -495,6 +505,7 @@ async def sync_wireguard_state():
         # 5. ENFORCE ACTIVE PEERS in Kernel
         if not db_keys:
             print("✨ All peers purged. System clean.")
+            await reload_wireguard() # Sync kernel to empty (peers-wise) config
             return
 
         cmd = ["wg", "set", WG_INTERFACE]
@@ -508,6 +519,10 @@ async def sync_wireguard_state():
             print(f"❌ ENFORCEMENT FAILED: {err}")
         else:
             print("✅ Mesh state synchronized with Kernel and File System.")
+            # Critical: Syncconf to ensure kernel matches the updated file
+            await reload_wireguard()
             
     except Exception as e:
         print(f"🔥 FATAL SYNC ERROR: {e}")
+        import traceback
+        traceback.print_exc()
