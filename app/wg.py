@@ -130,7 +130,7 @@ async def get_connected_peers(use_cache: bool = True) -> Dict[str, dict]:
     import time
     global _metrics_cache
     
-    HANDSHAKE_TIMEOUT = 180  # Seconds - if handshake is older than this, peer is "offline"
+    HANDSHAKE_TIMEOUT = 60  # Seconds - faster offline detection (miss 2-3 keepalives = offline)
     
     if use_cache and _metrics_cache:
         return _metrics_cache
