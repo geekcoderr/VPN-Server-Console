@@ -45,21 +45,37 @@ async def persist_to_db(metrics: dict):
         print(f"Database Persistence Error: {e}")
 
 async def broadcast_metrics():
-    """Background task to broadcast WireGuard stats and sync to DB every 10 seconds."""
+    """
+    Background task to broadcast WireGuard stats and sync to DB.
+    
+    STRATEGY: High-Frequency Polling (2s) for UI, Throttled Persistence (20s) for DB.
+    This gives "Immediate" feedback to the user without destroying disk I/O.
+    """
+    import time
+    last_db_sync = 0
+    DB_SYNC_INTERVAL = 20  # Seconds
+    
     while True:
         try:
-            # FORCE a fresh poll from WireGuard system to update the global cache
+            # 1. FAST LOOP (2s): Updates Global Cache & UI
+            # Force fresh poll to get latest handshake IMMEDIATELY
             connected = await get_connected_peers(use_cache=False)
             
-            # 1. IMMEDIATE Broadcast (Websocket) - Priority
+            # Broadcast to WebSocket (Priority)
             await manager.broadcast({"type": "metrics", "data": connected})
             
-            # 2. ASYNC Persist (Database) - Decoupled so DB lag doesn't freeze the UI
-            asyncio.create_task(persist_to_db(connected))
+            # 2. SLOW LOOP (20s): Persist to Database
+            # Only write to disk occasionally to save resources
+            now = time.time()
+            if now - last_db_sync > DB_SYNC_INTERVAL:
+                asyncio.create_task(persist_to_db(connected))
+                last_db_sync = now
             
         except Exception as e:
             print(f"Broadcast error: {e}")
-        await asyncio.sleep(10)
+        
+        # High-Frequency Polling Sleep
+        await asyncio.sleep(2)
 
 app = FastAPI(
     title="VPN Control API",
