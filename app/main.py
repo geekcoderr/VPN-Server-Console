@@ -13,12 +13,16 @@ from .wg import get_connected_peers
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    await init_db()
-    await ensure_admin_exists()
-    
-    # Critical: Enforce Kernel State Sync
-    from .wg import sync_wireguard_state
-    await sync_wireguard_state()
+    from .database import db_health_check
+    if not await db_health_check():
+        print("🚨 CRITICAL: Could not establish database connection. Sync aborted.")
+    else:
+        await init_db()
+        await ensure_admin_exists()
+        
+        # Critical: Enforce Kernel State Sync
+        from .wg import sync_wireguard_state
+        await sync_wireguard_state()
     
     # Background task for broadcasting metrics
     app.state.broadcast_task = asyncio.create_task(broadcast_metrics())

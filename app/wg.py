@@ -130,7 +130,7 @@ async def get_connected_peers(use_cache: bool = True) -> Dict[str, dict]:
     import time
     global _metrics_cache
     
-    HANDSHAKE_TIMEOUT = 180  # Seconds - accounts for mobile battery saving & jitter
+    HANDSHAKE_TIMEOUT = 300  # Seconds - 5 minutes for max mobile stability
     
     if use_cache and _metrics_cache:
         return _metrics_cache
@@ -184,7 +184,7 @@ def parse_config(content: str) -> Tuple[str, List[dict]]:
     Parse wg0.conf into interface section and list of peers.
     Returns (interface_section, [peer_dicts])
     """
-    # Split into sections
+    # Split into sections, keeping the delimiters
     sections = re.split(r'(?=\[(?:Interface|Peer)\])', content.strip())
     
     interface = ""
@@ -196,22 +196,21 @@ def parse_config(content: str) -> Tuple[str, List[dict]]:
             continue
             
         if section.startswith('[Interface]'):
+            # Capture EVERYTHING hasta the next section
             interface = section
         elif section.startswith('[Peer]'):
             peer = {'raw': section}
             
-            # Extract PublicKey
+            # Extract PublicKey for comparison logic
             pk_match = re.search(r'PublicKey\s*=\s*(\S+)', section)
             if pk_match:
                 peer['public_key'] = pk_match.group(1)
             
-            # Extract AllowedIPs
-            ip_match = re.search(r'AllowedIPs\s*=\s*(\S+)', section)
-            if ip_match:
-                peer['allowed_ips'] = ip_match.group(1)
-            
             peers.append(peer)
     
+    if not interface:
+        print("⚠️ Warning: No [Interface] section found during parse!")
+        
     return interface, peers
 
 
@@ -361,10 +360,12 @@ async def reload_wireguard() -> Tuple[bool, str]:
     """
     try:
         # 1. Create temporary strip config (removes wg-quick specific directives)
-        # wg-quick strip outputs the raw config that `wg` command accepts
+        print(f"🔧 [KERNEL] Stripping config {WG_CONFIG_PATH}...")
         code, stdout, stderr = await run_command(["wg-quick", "strip", str(WG_CONFIG_PATH)])
         if code != 0:
-            return False, f"Failed to strip config: {stderr}"
+            msg = f"Failed to strip config: {stderr}"
+            print(f"❌ [KERNEL] {msg}")
+            return False, msg
         
         stripped_config = stdout
         
@@ -375,10 +376,16 @@ async def reload_wireguard() -> Tuple[bool, str]:
             
         try:
             # 3. Sync configuration to running interface
+            print(f"🔧 [KERNEL] Executing wg syncconf {WG_INTERFACE}...")
             code, stdout, stderr = await run_command(["wg", "syncconf", WG_INTERFACE, tmp_path])
             
             success = code == 0
             error = stderr if not success else ""
+            
+            if not success:
+                print(f"❌ [KERNEL] syncconf failed: {error}")
+            else:
+                print(f"✅ [KERNEL] Interface {WG_INTERFACE} state synchronized with disk.")
             
             log_wg_reload(success, error if error else None)
             return success, error
@@ -388,6 +395,7 @@ async def reload_wireguard() -> Tuple[bool, str]:
                 os.unlink(tmp_path)
         
     except Exception as e:
+        print(f"🔥 [KERNEL] Reload exception: {e}")
         log_wg_reload(False, str(e))
         return False, str(e)
 
@@ -479,33 +487,39 @@ async def sync_wireguard_state():
         content = read_config()
         interface_cfg, _ = parse_config(content)
         
-        # Build new peers list for file
-        new_file_peers = []
-        for u in active_users:
-            new_file_peers.append({
-                'public_key': u.public_key,
-                'allowed_ips': f"{u.assigned_ip}/32",
-                'persistent_keepalive': PERSISTENT_KEEPALIVE
-            })
+        if not interface_cfg:
+            print("🚨 CRITICAL: Cannot find [Interface] section in wg0.conf! Aborting file overhaul to prevent corruption.")
+        else:
+            # Build new peers list for file
+            new_file_peers = []
+            for u in active_users:
+                new_file_peers.append({
+                    'public_key': u.public_key,
+                    'allowed_ips': f"{u.assigned_ip}/32",
+                    'persistent_keepalive': PERSISTENT_KEEPALIVE
+                })
+                
+            new_content = build_config(interface_cfg, new_file_peers)
             
-        new_content = build_config(interface_cfg, new_file_peers)
-        
-        # Write to wg0.conf atomically
-        temp_fd, temp_path = tempfile.mkstemp(dir=WG_CONFIG_PATH.parent, prefix='.wg0.', suffix='.tmp')
-        try:
-            with os.fdopen(temp_fd, 'w') as tmp:
-                tmp.write(new_content)
-            os.chmod(temp_path, 0o600)
-            os.rename(temp_path, WG_CONFIG_PATH)
-        except Exception as file_err:
-            print(f"❌ File Sync Failed: {file_err}")
-            if os.path.exists(temp_path):
-                os.unlink(temp_path)
-        
+            # Write to wg0.conf atomically
+            temp_fd, temp_path = tempfile.mkstemp(dir=WG_CONFIG_PATH.parent, prefix='.wg0.', suffix='.tmp')
+            try:
+                with os.fdopen(temp_fd, 'w') as tmp:
+                    tmp.write(new_content)
+                os.chmod(temp_path, 0o600)
+                os.rename(temp_path, WG_CONFIG_PATH)
+                print("✅ File System overhauled and hardened.")
+            except Exception as file_err:
+                print(f"❌ File Sync Failed: {file_err}")
+                if os.path.exists(temp_path):
+                    os.unlink(temp_path)
+            
         # 5. ENFORCE ACTIVE PEERS in Kernel
         if not db_keys:
-            print("✨ All peers purged. System clean.")
-            await reload_wireguard() # Sync kernel to empty (peers-wise) config
+            print("✨ All peers purged from DB. Cleaning Kernel...")
+            success, err = await reload_wireguard() # Sync kernel to empty (peers-wise) config
+            if not success:
+                print(f"❌ Failed to purge Kernel: {err}")
             return
 
         cmd = ["wg", "set", WG_INTERFACE]
@@ -513,14 +527,17 @@ async def sync_wireguard_state():
             user = db_user_map[key]
             cmd.extend(["peer", key, "allowed-ips", f"{user.assigned_ip}/32"])
         
-        print(f"⚡ Enforcing {len(db_keys)} Active peers...")
+        print(f"⚡ Enforcing {len(db_keys)} Active peers in Kernel...")
         code, out, err = await run_command(cmd)
         if code != 0:
             print(f"❌ ENFORCEMENT FAILED: {err}")
         else:
-            print("✅ Mesh state synchronized with Kernel and File System.")
             # Critical: Syncconf to ensure kernel matches the updated file
-            await reload_wireguard()
+            success, err = await reload_wireguard()
+            if not success:
+                print(f"❌ Post-Sync Kernel reload failed: {err}")
+            else:
+                print("✅ Mesh state synchronized with Kernel and File System.")
             
     except Exception as e:
         print(f"🔥 FATAL SYNC ERROR: {e}")

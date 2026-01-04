@@ -112,13 +112,20 @@ async def delete_user(username: str):
         await session.execute(delete(User).where(User.username == username))
         await session.commit()
 
-async def get_all_users():
-    """Get all users for sync."""
-    async with AsyncSessionLocal() as session:
-        result = await session.execute(select(User))
-        return result.scalars().all()
-
 async def get_used_ips():
     async with AsyncSessionLocal() as session:
         result = await session.execute(select(User.assigned_ip))
         return {row[0] for row in result.all()}
+
+async def db_health_check() -> bool:
+    """Verify DB connectivity with retries."""
+    import asyncio
+    for i in range(5):
+        try:
+            async with AsyncSessionLocal() as session:
+                await session.execute(text("SELECT 1"))
+                return True
+        except Exception as e:
+            print(f"📡 Waiting for MySQL... (Attempt {i+1}/5): {e}")
+            await asyncio.sleep(2)
+    return False
