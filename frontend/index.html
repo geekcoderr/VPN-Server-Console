@@ -844,10 +844,11 @@
             }
         }
 
-        /* RESPONSIVE OVERHAUL (v3.2.0) */
+        /* RESPONSIVE OVERHAUL (v3.2.1) - Adaptive Stacked UI */
         .table-container {
             width: 100%;
-            overflow-x: auto;
+            overflow-x: hidden;
+            /* Stacked view doesn't need horizontal scroll */
             border-radius: 32px;
             background: var(--glass);
             border: 1px solid var(--glass-border);
@@ -855,7 +856,6 @@
             margin-bottom: 40px;
         }
 
-        /* Ensure table-view doesn't double-border if inside container */
         .table-container .table-view {
             border: none;
             box-shadow: none;
@@ -863,17 +863,17 @@
             border-radius: 0;
         }
 
-        @media (max-width: 1024px) {
-            .container {
-                padding: 32px;
-            }
-
-            .navbar {
-                padding: 20px 24px;
-            }
-
+        @media (max-width: 1100px) {
             .stats-header {
                 grid-template-columns: repeat(2, 1fr);
+            }
+
+            .stats-header>div:last-child {
+                grid-column: span 2;
+                margin-left: 0 !important;
+                display: flex;
+                justify-content: space-between;
+                width: 100%;
             }
         }
 
@@ -887,49 +887,134 @@
                 gap: 16px;
             }
 
+            .stats-header>div:last-child {
+                grid-column: span 1;
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .stats-header .btn-create {
+                width: 100%;
+            }
+
             .console-header {
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 16px;
+                margin-bottom: 24px;
             }
 
-            .btn-create {
+            /* TABLE STACKING LOGIC */
+            .table-view table,
+            .table-view thead,
+            .table-view tbody,
+            .table-view th,
+            .table-view td,
+            .table-view tr {
+                display: block;
+            }
+
+            .table-view thead tr {
+                position: absolute;
+                top: -9999px;
+                left: -9999px;
+            }
+
+            .table-view tr {
+                border-bottom: 12px solid rgba(255, 255, 255, 0.05);
+                padding: 20px 0;
+                position: relative;
+            }
+
+            .table-view td {
+                border: none;
+                padding: 12px 20px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                text-align: right;
+            }
+
+            .table-view td:before {
+                content: attr(data-label);
+                float: left;
+                font-size: 11px;
+                font-weight: 700;
+                text-transform: uppercase;
+                color: var(--text-dim);
+                letter-spacing: 1px;
+                text-align: left;
+            }
+
+            /* Highlight the Identity */
+            .table-view td:first-child {
+                background: rgba(255, 255, 255, 0.03);
+                margin-bottom: 8px;
+                text-align: left;
+                justify-content: flex-start;
+            }
+
+            .table-view td:first-child:before {
+                display: none;
+            }
+
+            /* Action Tray on Mobile */
+            .table-view td:last-child {
+                display: block;
+                text-align: center;
+                border-top: 1px solid var(--glass-border);
+                margin-top: 8px;
+                padding-top: 20px;
+            }
+
+            .table-view td:last-child:before {
+                display: none;
+            }
+
+            .action-tray {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
                 width: 100%;
-                justify-content: center;
+            }
+
+            .action-tray .action-btn {
+                width: 100%;
             }
 
             .modal {
-                padding: 40px 24px;
-                border-radius: 30px;
+                padding: 32px 20px;
+                border-radius: 28px;
             }
 
             .os-selector {
                 grid-template-columns: 1fr;
             }
-
-            /* Hide less critical columns on small mobile */
-            .hide-mobile {
-                display: none;
-            }
         }
 
         @media (max-width: 480px) {
-            .brand h1 {
-                font-size: 20px;
+            .navbar {
+                padding: 16px;
+                flex-direction: column;
+                gap: 16px;
+                height: auto;
             }
 
-            .logo-box {
-                width: 40px;
-                height: 40px;
+            .brand h1 {
+                font-size: 22px;
             }
 
             .user-nav {
-                gap: 12px;
+                width: 100%;
+                justify-content: space-between;
             }
 
-            .admin-pill {
-                padding: 6px 12px;
-                font-size: 11px;
+            .stat-card {
+                padding: 24px;
+            }
+
+            .stat-value {
+                font-size: 32px;
             }
         }
     </style>
@@ -1039,35 +1124,35 @@
                                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                                     <circle cx="12" cy="7" r="4" />
                                 </svg>Username</th>
-                            <th class="hide-mobile"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                    stroke="currentColor" stroke-width="2.5" style="margin-right:8px;">
+                            <th><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" style="margin-right:8px;">
                                     <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
                                     <line x1="8" y1="21" x2="16" y2="21" />
                                     <line x1="12" y1="17" x2="12" y2="21" />
-                                </svg>OS</th>
+                                </svg>Platform</th>
                             <th><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2.5" style="margin-right:8px;">
                                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                                </svg>Account Status</th>
+                                </svg>Status</th>
                             <th><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2.5" style="margin-right:8px;">
                                     <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-                                </svg>Connection</th>
-                            <th class="hide-mobile"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                    stroke="currentColor" stroke-width="2.5" style="margin-right:8px;">
+                                </svg>Connectivity</th>
+                            <th><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" style="margin-right:8px;">
                                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                                     <circle cx="12" cy="10" r="3" />
                                 </svg>Endpoint</th>
-                            <th class="hide-mobile"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                    stroke="currentColor" stroke-width="2.5" style="margin-right:8px;">
+                            <th><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" style="margin-right:8px;">
                                     <polyline points="16 3 21 3 21 8" />
                                     <line x1="4" y1="20" x2="21" y2="3" />
                                     <polyline points="21 16 21 21 16 21" />
                                     <line x1="15" y1="15" x2="21" y2="21" />
                                     <line x1="4" y1="4" x2="9" y2="9" />
                                 </svg>Transfer</th>
-                            <th class="hide-mobile"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                    stroke="currentColor" stroke-width="2.5" style="margin-right:8px;">
+                            <th><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" style="margin-right:8px;">
                                     <circle cx="12" cy="12" r="10" />
                                     <polyline points="12 6 12 12 16 14" />
                                 </svg>Handshake</th>
@@ -1090,7 +1175,7 @@
         </div>
         <div class="footer"
             style="text-align: center; color: var(--text-dim); font-size: 12px; padding: 60px 0; opacity: 0.5; font-family: 'Inter', sans-serif;">
-            GeekSTunnel v3.2.0 &copy; 2026 | Fluid Console
+            GeekSTunnel v3.2.1 &copy; 2026 | Adaptive Console
         </div>
     </div>
 
@@ -1335,14 +1420,14 @@
                             <span class="node-tag">ENC_IP: ${u.assigned_ip}</span>
                         </div>
                     </td>
-                    <td class="hide-mobile"><div class="os-tag">${getOSIconIcon(u.client_os)} ${u.client_os}</div></td>
-                    <td>
+                    <td data-label="Platform"><div class="os-tag">${getOSIconIcon(u.client_os)} ${u.client_os}</div></td>
+                    <td data-label="Status">
                         <span class="status-badge ${u.status === 'active' ? 'status-active' : 'status-suspended'}">
                             <span class="status-dot ${u.status === 'active' ? 'status-active' : 'status-suspended'}"></span>
                             ${u.status === 'active' ? 'Active' : 'Disabled'}
                         </span>
                     </td>
-                    <td>
+                    <td data-label="Connectivity">
                         <div class="pulse-box">
                             <div class="pulse-dot ${u.connected ? 'online' : ''}" id="pulse-${u.public_key}"></div> 
                             <span id="pulse-text-${u.public_key}" style="font-weight:700; font-size:12px; letter-spacing:1px; color:${u.connected ? 'var(--success)' : 'var(--text-dim)'}">
@@ -1350,19 +1435,19 @@
                             </span>
                         </div>
                     </td>
-                    <td class="hide-mobile">
+                    <td data-label="Endpoint">
                         <div class="location-box" title="Global Ingress Point: ${u.last_endpoint || 'Unmapped'}">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                             ${u.last_endpoint || 'N/A'}
                         </div>
                     </td>
-                    <td class="hide-mobile">
+                    <td data-label="Transfer">
                         <div class="traffic-box">
                             <div class="traffic-tx" id="tx-${u.public_key}"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg> ${formatBytes(u.transfer_tx)}</div>
                             <div class="traffic-rx" id="rx-${u.public_key}"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg> ${formatBytes(u.transfer_rx)}</div>
                         </div>
                     </td>
-                    <td class="hide-mobile" style="font-size:11px; font-weight:600; color:var(--text-dim);" id="handshake-${u.public_key}">
+                    <td data-label="Handshake" style="font-size:11px; font-weight:600; color:var(--text-dim);" id="handshake-${u.public_key}">
                         ${u.last_login ? new Date(u.last_login).toLocaleString() : 'VOID'}
                     </td>
                     <td>
