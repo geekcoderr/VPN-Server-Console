@@ -38,14 +38,22 @@ async def persist_to_db(metrics: dict):
     try:
         async with AsyncSessionLocal() as db:
             for pubkey, stats in metrics.items():
+                # Only update if there's actual data
+                rx = stats.get('transfer_rx', 0)
+                tx = stats.get('transfer_tx', 0)
+                
+                if rx == 0 and tx == 0:
+                    continue
+                
+                # INCREMENT cumulative counters (not replace)
                 await db.execute(
                     update(User)
                     .where(User.public_key == pubkey)
                     .values(
-                        total_rx=stats['transfer_rx'],
-                        total_tx=stats['transfer_tx'],
-                        last_login=datetime.fromtimestamp(stats['latest_handshake']) if stats['latest_handshake'] else None,
-                        last_endpoint=stats['endpoint']
+                        total_rx=User.total_rx + rx,
+                        total_tx=User.total_tx + tx,
+                        last_login=datetime.fromtimestamp(stats['latest_handshake']) if stats.get('latest_handshake') else None,
+                        last_endpoint=stats.get('endpoint')
                     )
                 )
             await db.commit()
