@@ -1,0 +1,12 @@
+[Unit]
+Description=Cloudflare Dynamic DNS Updater
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/vpn-control/ddns/cf-ddns.sh
+EnvironmentFile=/etc/cf-ddns.env
+
+[Install]
+WantedBy=multi-user.target

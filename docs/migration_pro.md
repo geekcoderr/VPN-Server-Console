@@ -99,5 +99,20 @@ sudo ./optimize_speed.sh
 - Run `docker ps` to see Nginx and MySQL healthy.
 - Run `journalctl -u vpn-control -f` to watch the backend logs.
 
+## 11. Cloudflare Dynamic DNS (Optional but Recommended)
+If your server has a dynamic IP, set up auto-updating DNS:
+```bash
+# Install the DDNS automation
+sudo ./ddns/install-ddns.sh
+
+# Edit with your Cloudflare API Token
+sudo nano /etc/cf-ddns.env
+
+# Test it manually
+sudo systemctl start cf-ddns.service
+cat /var/log/cf-ddns.log
+```
+The timer will automatically update your `wg.` and `vpn.` records every 5 minutes and at boot.
+
 ---
 **Your server is now a mirror image of the original, hardened for reboots!** 🛡️🏁
