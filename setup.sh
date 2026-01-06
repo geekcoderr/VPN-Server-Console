@@ -50,36 +50,39 @@ systemctl daemon-reload
 systemctl enable vpn-control
 
 echo ""
-echo "[4/6] Configuring Nginx..."
-cp $APP_DIR/nginx/vpn-control.conf $NGINX_CONF
+echo ""
+echo "[4/6] Configuring Service Architecture..."
 
-# Create symlink to enable site
-ln -sf $NGINX_CONF /etc/nginx/sites-enabled/vpn-control
-
-# Remove default site if exists
-rm -f /etc/nginx/sites-enabled/default
-
-# Test nginx config (will fail until SSL cert exists)
-echo "Note: Nginx config test may fail until SSL certificate is obtained"
+# Check if we are in Hybrid Mode (Docker Nginx)
+if docker ps | grep -q "vpn-nginx"; then
+    echo "✅ Dockerized Nginx detected. Skipping Host Nginx setup."
+else
+    echo "Installing Host Nginx Config..."
+    cp $APP_DIR/nginx/vpn-control.conf $NGINX_CONF
+    ln -sf $NGINX_CONF /etc/nginx/sites-enabled/vpn-control
+    rm -f /etc/nginx/sites-enabled/default
+fi
 
 echo ""
-echo "[5/6] Obtaining SSL certificate..."
-# Stop nginx temporarily for standalone cert
-systemctl stop nginx || true
-
-# Get certificate
-certbot certonly --standalone -d $DOMAIN --non-interactive --agree-tos --email admin@$DOMAIN || {
-    echo "Certbot failed. Make sure:"
-    echo "  1. DNS is pointing to this server"
-    echo "  2. Port 80 is open"
-    echo "  3. Run: certbot certonly --standalone -d $DOMAIN"
-}
-
-# Test and start nginx
-nginx -t && systemctl start nginx
+echo "[5/6] Verifying SSL Status..."
+if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
+    echo "✅ SSL Certificates already exist (Migrated). Skipping Certbot."
+    echo "   Path: /etc/letsencrypt/live/$DOMAIN"
+else
+    # Only run Certbot if NO Docker Nginx and NO Certs
+    if ! docker ps | grep -q "vpn-nginx"; then
+        echo "Obtaining SSL certificate..."
+        systemctl stop nginx || true
+        certbot certonly --standalone -d $DOMAIN --non-interactive --agree-tos --email admin@$DOMAIN
+        systemctl start nginx
+    else
+        echo "⚠️  Missing Certs but Docker Nginx is running."
+        echo "    Please restore certs manually or insure Docker has them mounted."
+    fi
+fi
 
 echo ""
-echo "[6/6] Starting VPN Control service..."
+echo "[6/6] Starting VPN Control Backend..."
 systemctl start vpn-control
 systemctl status vpn-control --no-pager
 

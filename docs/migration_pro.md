@@ -9,7 +9,7 @@ Before shutting down the old server, capture your data:
 
 ```bash
 # 1. Export Database State
-docker exec vpn-mysql mysqldump -u vpn_user -p vpn_control > /tmp/vpn_state.sql
+docker exec vpn-mysql mysqldump --no-tablespaces -u vpn_user -pvpn_pass vpn_control > /tmp/vpn_state.sql
 
 # 2. Backup Certificates (Same Domain)
 sudo tar -cvzf certs_backup.tar.gz /etc/letsencrypt/live/vpn.nishantmaheshwari.online /etc/letsencrypt/archive/vpn.nishantmaheshwari.online
@@ -35,6 +35,8 @@ Restores certificates and prepares Docker volumes.
 
 ```bash
 # Clone the repository
+sudo mkdir -p /opt/vpn-control
+sudo chown $USER:$USER /opt/vpn-control
 git clone https://github.com/geekcoderr/VPN-Server-Console.git /opt/vpn-control
 cd /opt/vpn-control
 
