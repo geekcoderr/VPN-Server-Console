@@ -1121,6 +1121,16 @@
                     </svg>
                     Refresh Mesh
                 </button>
+                <button class="btn-create"
+                    style="padding: 12px 24px; background: rgba(99, 102, 241, 0.2); border: 1px solid rgba(99, 102, 241, 0.4);"
+                    onclick="showModal('inviteModal')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        style="margin-right: 6px;">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                        <polyline points="22,6 12,13 2,6"></polyline>
+                    </svg>
+                    Invite User
+                </button>
                 <button class="btn-create" style="padding: 12px 24px;" onclick="showModal('provisionModal')">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                         <line x1="12" y1="5" x2="12" y2="19" />
@@ -1224,18 +1234,56 @@
 
             <div class="table-view" style="max-height: 300px; overflow-y: auto;">
                 <table>
-                    <thead>
-                        <tr>
-                            <th>Domain</th>
-                            <th style="text-align: right;">Action</th>
-                        </tr>
-                    </thead>
                     <tbody id="blacklistTableBody">
                         <!-- Populated by JS -->
                     </tbody>
                 </table>
             </div>
         </div>
+    </div>
+
+    <!-- Invite User Modal -->
+    <div class="overlay" id="inviteModal">
+        <div class="modal">
+            <button class="modal-close" onclick="closeModal('inviteModal')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+            <h3 style="font-size: 28px; margin-bottom: 8px;">Invite User</h3>
+            <p style="color: var(--text-dim); font-size: 14px; margin-bottom: 32px;">
+                Send an invitation email with a secure registration link.
+            </p>
+
+            <div style="margin-bottom: 24px;">
+                <label style="display: block; color: var(--text-dim); font-size: 12px; margin-bottom: 8px;">EMAIL
+                    ADDRESS</label>
+                <input type="email" id="inviteEmail" placeholder="user@example.com"
+                    style="width: 100%; padding: 14px; background: rgba(255,255,255,0.04); border: 2px solid var(--glass-border); border-radius: 14px; color: white; font-size: 15px;">
+            </div>
+
+            <div class="modal-buttons">
+                <button class="btn-modal btn-modal-secondary" onclick="closeModal('inviteModal')">Cancel</button>
+                <button class="btn-modal btn-modal-primary" onclick="sendInvite()">Send Invitation</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-view" style="max-height: 300px; overflow-y: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Domain</th>
+                    <th style="text-align: right;">Action</th>
+                </tr>
+            </thead>
+            <tbody id="blacklistTableBody">
+                <!-- Populated by JS -->
+            </tbody>
+        </table>
+    </div>
+    </div>
     </div>
 
     <!-- Provision Modal -->
@@ -2061,6 +2109,39 @@
                 triggerToast("Domain unblocked.");
             } catch (err) {
                 triggerToast("Failed to unblock domain.");
+            }
+        }
+        async function sendInvite() {
+            const email = document.getElementById('inviteEmail').value.trim();
+            if (!email) return;
+
+            const btn = document.querySelector('#inviteModal .btn-modal-primary');
+            const originalText = btn.innerText;
+            btn.innerText = "Sending...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/invites', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                    },
+                    body: JSON.stringify({ email })
+                });
+                
+                if (!res.ok) throw new Error("Failed to invite");
+                
+                const data = await res.json();
+                closeModal('inviteModal');
+                triggerToast("Invitation sent successfully.");
+                document.getElementById('inviteEmail').value = '';
+                
+            } catch (err) {
+                triggerToast("Failed to send invitation.");
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
             }
         }
     </script>

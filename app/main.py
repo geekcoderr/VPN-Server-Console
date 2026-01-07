@@ -137,6 +137,8 @@ app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(users_router)
 from .alerts import router as alerts_router
 app.include_router(alerts_router)
+from .invites import router as invites_router
+app.include_router(invites_router)
 
 @app.websocket("/ws/stats")
 async def stats_websocket(websocket: WebSocket):

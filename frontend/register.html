@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VPN Registration</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #050507;
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --accent: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.4);
+            --text-main: #ffffff;
+            --text-dim: #94a3b8;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-image: radial-gradient(circle at 50% 0%, #1a1b2e 0%, #050507 60%);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 420px;
+            padding: 40px;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(20px);
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        p {
+            color: var(--text-dim);
+            font-size: 14px;
+            margin-bottom: 32px;
+            line-height: 1.5;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 14px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            color: white;
+            font-size: 15px;
+            margin-bottom: 16px;
+            box-sizing: border-box;
+            transition: all 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 15px;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px var(--accent-glow);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .step {
+            display: none;
+        }
+
+        .step.active {
+            display: block;
+        }
+
+        .error {
+            color: #ef4444;
+            font-size: 13px;
+            margin-top: 8px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <!-- Step 1: Loading / Verify Token -->
+        <div id="step-loading" class="step active">
+            <div style="margin-bottom: 20px;">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"
+                    class="spin">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                </svg>
+            </div>
+            <p>Verifying invitation...</p>
+        </div>
+
+        <!-- Step 2: Request OTP -->
+        <div id="step-request-otp" class="step">
+            <h1>Welcome</h1>
+            <p>You have been invited to join the secure network.<br>Please verify your email to proceed.</p>
+            <input type="email" id="emailDisplay" disabled style="opacity: 0.7; cursor: not-allowed;">
+            <button class="btn" onclick="requestOtp()">Send Verification Code</button>
+            <div id="otpError" class="error"></div>
+        </div>
+
+        <!-- Step 3: Verify OTP -->
+        <div id="step-verify-otp" class="step">
+            <h1>Enter Code</h1>
+            <p>We sent a 6-digit code to your email.</p>
+            <input type="text" id="otpInput" placeholder="123456" maxlength="6"
+                style="text-align: center; letter-spacing: 4px; font-size: 20px;">
+            <button class="btn" onclick="verifyOtp()">Verify Code</button>
+            <div id="verifyError" class="error"></div>
+        </div>
+
+        <!-- Step 4: Registration -->
+        <div id="step-register" class="step">
+            <h1>Setup Profile</h1>
+            <p>Choose a username and device type.</p>
+            <input type="text" id="username" placeholder="Username (e.g. john_doe)">
+            <select id="os">
+                <option value="android">Android</option>
+                <option value="ios">iOS</option>
+                <option value="windows">Windows</option>
+                <option value="macos">macOS</option>
+                <option value="linux">Linux</option>
+            </select>
+            <button class="btn" onclick="registerUser()">Create Account</button>
+            <div id="regError" class="error"></div>
+        </div>
+
+        <!-- Step 5: Success -->
+        <div id="step-success" class="step">
+            <h1 style="color: #10b981;">Success!</h1>
+            <p>Scan this QR code with your WireGuard app.</p>
+            <div id="qrcode"
+                style="background: white; padding: 10px; border-radius: 12px; display: inline-block; margin-bottom: 20px;">
+            </div>
+            <p style="font-size: 12px;">Or download the config file below.</p>
+            <a id="downloadLink" class="btn" style="display: block; text-decoration: none; line-height: 20px;">Download
+                Config</a>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        let userEmail = '';
+
+        // Init
+        if (!token) {
+            showError("Invalid or missing invitation token.");
+        } else {
+            verifyToken();
+        }
+
+        function showStep(id) {
+            document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        function showError(msg) {
+            document.querySelector('.container').innerHTML = `
+                <h1 style="color: #ef4444;">Error</h1>
+                <p>${msg}</p>
+            `;
+        }
+
+        async function verifyToken() {
+            try {
+                const res = await fetch(`/api/invites/${token}`);
+                if (!res.ok) throw new Error("Invalid token");
+                const data = await res.json();
+                userEmail = data.email;
+                document.getElementById('emailDisplay').value = userEmail;
+
+                if (data.is_verified) {
+                    showStep('step-register');
+                } else {
+                    showStep('step-request-otp');
+                }
+            } catch (e) {
+                showError("This invitation link is invalid or expired.");
+            }
+        }
+
+        async function requestOtp() {
+            const btn = document.querySelector('#step-request-otp button');
+            btn.disabled = true;
+            btn.innerText = "Sending...";
+
+            try {
+                const res = await fetch(`/api/invites/${token}/otp`, { method: 'POST' });
+                if (!res.ok) throw new Error("Failed to send OTP");
+                showStep('step-verify-otp');
+            } catch (e) {
+                document.getElementById('otpError').innerText = "Failed to send email. Try again.";
+                document.getElementById('otpError').style.display = 'block';
+                btn.disabled = false;
+                btn.innerText = "Send Verification Code";
+            }
+        }
+
+        async function verifyOtp() {
+            const otp = document.getElementById('otpInput').value;
+            const btn = document.querySelector('#step-verify-otp button');
+
+            try {
+                const res = await fetch(`/api/invites/${token}/verify`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ otp })
+                });
+                if (!res.ok) throw new Error("Invalid OTP");
+                showStep('step-register');
+            } catch (e) {
+                document.getElementById('verifyError').innerText = "Invalid or expired code.";
+                document.getElementById('verifyError').style.display = 'block';
+            }
+        }
+
+        async function registerUser() {
+            const username = document.getElementById('username').value;
+            const os = document.getElementById('os').value;
+
+            if (!username) return;
+
+            const btn = document.querySelector('#step-register button');
+            btn.disabled = true;
+            btn.innerText = "Creating Account...";
+
+            try {
+                // We need a new endpoint for public registration via token
+                const res = await fetch(`/api/users/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token, username, client_os: os })
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || "Registration failed");
+                }
+
+                const data = await res.json();
+
+                // Show QR
+                new QRCode(document.getElementById("qrcode"), {
+                    text: data.client_config,
+                    width: 200,
+                    height: 200
+                });
+
+                // Setup Download
+                const blob = new Blob([data.client_config], { type: 'text/plain' });
+                const url = window.URL.createObjectURL(blob);
+                const link = document.getElementById('downloadLink');
+                link.href = url;
+                link.download = `${username}.conf`;
+
+                showStep('step-success');
+
+            } catch (e) {
+                document.getElementById('regError').innerText = e.message;
+                document.getElementById('regError').style.display = 'block';
+                btn.disabled = false;
+                btn.innerText = "Create Account";
+            }
+        }
+    </script>
+</body>
+
+</html>

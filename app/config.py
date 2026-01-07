@@ -50,3 +50,10 @@ AUDIT_LOG_PATH = DATA_DIR / "audit.log"
 REDIS_HOST = os.getenv("REDIS_HOST", "127.0.0.1")
 REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
 REDIS_DB = int(os.getenv("REDIS_DB", "0"))
+
+# SMTP Configuration
+SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "admin@example.com")
+SMTP_PASS = os.getenv("SMTP_PASS", "change-me")
+SMTP_FROM = os.getenv("SMTP_FROM", "VPN Admin <admin@example.com>")

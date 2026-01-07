@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import String, Integer, DateTime, Text, BigInteger, func
+from sqlalchemy import String, Integer, DateTime, Text, BigInteger, func, Boolean
 from datetime import datetime
 from typing import Optional
 import os
@@ -53,6 +53,16 @@ class Session(Base):
     bytes_rx: Mapped[int] = mapped_column(BigInteger, default=0)
     bytes_tx: Mapped[int] = mapped_column(BigInteger, default=0)
     is_active: Mapped[bool] = mapped_column(Integer, default=1) # 1=Active, 0=Closed
+
+class UserInvite(Base):
+    __tablename__ = "user_invites"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    token: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    otp: Mapped[Optional[str]] = mapped_column(String(6), nullable=True)
+    otp_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
 
 from sqlalchemy import text
 

@@ -80,6 +80,98 @@ class CreateUserResponse(BaseModel):
     qr_code: str
 
 
+class RegisterUserRequest(BaseModel):
+    token: str
+    username: str
+    client_os: str = 'android'
+    
+    @validator('username')
+    def validate_username(cls, v):
+        if not v or len(v) < 2:
+            raise ValueError("Username must be at least 2 characters")
+        if len(v) > 32:
+            raise ValueError("Username must be at most 32 characters")
+        if not re.match(r'^[a-zA-Z0-9_-]+$', v):
+            raise ValueError("Username can only contain letters, numbers, underscores, and hyphens")
+        return v.lower()
+
+@router.post("/register")
+async def register_user(request: RegisterUserRequest):
+    """
+    Public endpoint to register with a verified token.
+    """
+    from .database import AsyncSessionLocal, UserInvite
+    from sqlalchemy import select
+    
+    # 1. Verify Token
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(UserInvite).filter(UserInvite.token == request.token))
+        invite = result.scalar_one_or_none()
+        
+        if not invite:
+            raise HTTPException(status_code=403, detail="Invalid invitation")
+        if not invite.is_verified:
+            raise HTTPException(status_code=403, detail="Invitation not verified. Please complete OTP verification.")
+            
+        # Consume invite (delete it)
+        await session.delete(invite)
+        await session.commit()
+
+    # 2. Create User (Reuse Logic)
+    username = request.username
+    client_os = request.client_os
+    
+    # Check if user already exists
+    existing = await get_user_by_username(username)
+    if existing:
+        raise HTTPException(status_code=400, detail="Username already taken")
+    
+    try:
+        # Generate keypair
+        private_key, public_key = await generate_keypair()
+        
+        # Allocate IP
+        used_ips = await get_used_ips()
+        assigned_ip = allocate_ip(used_ips)
+        
+        # Add to WireGuard config
+        await add_peer_to_config(public_key, assigned_ip, username)
+        
+        # Apply Default ACL (Full)
+        from .firewall import apply_acl
+        apply_acl(assigned_ip, "full")
+        
+        # Save to DB
+        await create_user(username, public_key, private_key, assigned_ip, client_os, "full")
+        
+        # Get server public key
+        server_public_key = await get_server_public_key()
+        
+        # Generate config
+        client_config = generate_client_config(
+            username,
+            public_key,
+            assigned_ip,
+            server_public_key,
+            client_os,
+        )
+        
+        # Generate QR code
+        qr_code = generate_qr_data_uri(client_config)
+        
+        return {
+            "status": "created",
+            "username": username,
+            "client_config": client_config,
+            "qr_code": qr_code
+        }
+
+    except Exception as e:
+        # logging.error(f"Failed to register user {username}: {e}")
+        await remove_peer_from_config(username)
+        raise HTTPException(status_code=500, detail=f"Registration failed: {e}")
+
+
 @router.get("")
 async def list_users(admin: str = Depends(get_current_admin)):
     """List all VPN users with connection status."""
