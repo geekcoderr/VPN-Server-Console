@@ -39,6 +39,18 @@ class User(Base):
     last_endpoint: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
 
+class Session(Base):
+    __tablename__ = "vpn_sessions"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(Integer, nullable=False)  # Foreign Key logic handled in code
+    public_key: Mapped[str] = mapped_column(String(255), nullable=False)
+    start_time: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    end_time: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    source_ip: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    bytes_rx: Mapped[int] = mapped_column(BigInteger, default=0)
+    bytes_tx: Mapped[int] = mapped_column(BigInteger, default=0)
+    is_active: Mapped[bool] = mapped_column(Integer, default=1) # 1=Active, 0=Closed
+
 from sqlalchemy import text
 
 async def init_db():
@@ -58,6 +70,10 @@ async def init_db():
             if not result.fetchone():
                 print("Migration: Adding 'private_key' column...")
                 await conn.execute(text("ALTER TABLE users ADD COLUMN private_key TEXT NULL"))
+                
+            # 3. vpn_sessions (Ensure table exists - handled by create_all, but good to verify)
+            # No manual migration needed as create_all handles new tables
+            
         except Exception as e:
             print(f"Migration error: {e}")
 
