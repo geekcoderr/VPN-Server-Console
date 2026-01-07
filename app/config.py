@@ -45,3 +45,8 @@ DB_NAME = os.getenv("DB_NAME", "vpn_control")
 
 # Audit log
 AUDIT_LOG_PATH = DATA_DIR / "audit.log"
+
+# Redis Configuration
+REDIS_HOST = os.getenv("REDIS_HOST", "127.0.0.1")
+REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
+REDIS_DB = int(os.getenv("REDIS_DB", "0"))

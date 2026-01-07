@@ -41,9 +41,14 @@ async def lifespan(app: FastAPI):
     # Background task for broadcasting metrics
     app.state.broadcast_task = asyncio.create_task(broadcast_metrics())
     
+    # Start Alert Worker
+    from .worker import alert_worker
+    app.state.alert_worker_task = asyncio.create_task(alert_worker())
+    
     yield
     # Shutdown
     app.state.broadcast_task.cancel()
+    app.state.alert_worker_task.cancel()
 
 async def persist_to_db(metrics: dict):
     """Auxiliary task to persist metrics to DB without blocking the broadcast loop."""
@@ -130,6 +135,8 @@ app.add_middleware(
 # Include routers
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(users_router)
+from .alerts import router as alerts_router
+app.include_router(alerts_router)
 
 @app.websocket("/ws/stats")
 async def stats_websocket(websocket: WebSocket):

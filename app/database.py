@@ -112,6 +112,11 @@ async def get_user_by_username(username: str):
         result = await session.execute(select(User).filter(User.username == username))
         return result.scalar_one_or_none()
 
+async def get_user_by_ip(ip: str):
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(User).filter(User.assigned_ip == ip))
+        return result.scalar_one_or_none()
+
 async def create_user(username: str, public_key: str, private_key: str, assigned_ip: str, client_os: str = 'android', acl_profile: str = 'full'):
     async with AsyncSessionLocal() as session:
         user = User(

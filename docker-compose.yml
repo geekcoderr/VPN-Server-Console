@@ -24,6 +24,29 @@ services:
     networks:
       - vpn-fe-net
 
+  redis:
+    image: redis:alpine
+    container_name: vpn-redis
+    restart: always
+    ports:
+      - "127.0.0.1:6379:6379"
+    networks:
+      - vpn-fe-net
+    command: redis-server --save 60 1 --loglevel warning
+
+  coredns:
+    image: coredns/coredns:latest
+    container_name: vpn-dns
+    restart: always
+    ports:
+      - "53:53/udp"
+      - "53:53/tcp"
+    networks:
+      - vpn-fe-net
+    volumes:
+      - ./coredns/Corefile:/root/Corefile
+    command: -conf /root/Corefile
+
 networks:
   vpn-fe-net:
     driver: bridge
