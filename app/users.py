@@ -380,3 +380,45 @@ async def sync_all_users(admin: str = Depends(get_current_admin)):
         "message": f"Synced {synced_count} users",
         "errors": errors if errors else None
     }
+
+
+@router.get("/{username}/sessions")
+async def get_user_sessions(
+    username: str,
+    limit: int = 50,
+    admin: str = Depends(get_current_admin)
+):
+    """
+    Fetch session history for a specific user.
+    """
+    user = await get_user_by_username(username)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    from .database import Session
+    from sqlalchemy import select, desc
+    
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(Session)
+            .where(Session.user_id == user.id)
+            .order_by(desc(Session.start_time))
+            .limit(limit)
+        )
+        sessions = result.scalars().all()
+        
+        return {
+            "sessions": [
+                {
+                    "id": s.id,
+                    "start_time": s.start_time.isoformat(),
+                    "end_time": s.end_time.isoformat() if s.end_time else None,
+                    "duration": str(s.end_time - s.start_time).split('.')[0] if s.end_time else "Active",
+                    "source_ip": s.source_ip,
+                    "bytes_rx": s.bytes_rx,
+                    "bytes_tx": s.bytes_tx,
+                    "is_active": s.is_active
+                }
+                for s in sessions
+            ]
+        }

@@ -1758,6 +1758,132 @@
 
         init();
     </script>
+    <!-- User Details Modal -->
+    <div id="userDetailsModal" class="overlay">
+        <div class="modal" style="max-width: 800px;">
+            <div class="modal-close" onclick="closeModal('userDetailsModal')">✕</div>
+            <h2 style="margin-bottom: 24px;">User Details: <span id="detailUsername" style="color: var(--accent);"></span></h2>
+            
+            <!-- Tabs -->
+            <div style="display: flex; gap: 16px; margin-bottom: 24px; border-bottom: 1px solid var(--glass-border);">
+                <button onclick="switchTab('overview')" id="tab-overview" class="tab-btn active" style="padding: 10px 20px; background: none; border: none; color: white; cursor: pointer; border-bottom: 2px solid var(--accent);">Overview</button>
+                <button onclick="switchTab('sessions')" id="tab-sessions" class="tab-btn" style="padding: 10px 20px; background: none; border: none; color: var(--text-dim); cursor: pointer;">Session History</button>
+            </div>
+
+            <!-- Overview Tab -->
+            <div id="view-overview">
+                <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px;">
+                    <div class="stat-card" style="padding: 20px;">
+                        <div class="stat-label">Total Download</div>
+                        <div class="stat-value" id="detailRx" style="font-size: 24px;">0 GB</div>
+                    </div>
+                    <div class="stat-card" style="padding: 20px;">
+                        <div class="stat-label">Total Upload</div>
+                        <div class="stat-value" id="detailTx" style="font-size: 24px;">0 GB</div>
+                    </div>
+                    <div class="stat-card" style="padding: 20px;">
+                        <div class="stat-label">Last Login</div>
+                        <div class="stat-value" id="detailLastLogin" style="font-size: 18px;">Never</div>
+                    </div>
+                    <div class="stat-card" style="padding: 20px;">
+                        <div class="stat-label">Assigned IP</div>
+                        <div class="stat-value" id="detailIp" style="font-size: 18px;">10.50.0.x</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sessions Tab -->
+            <div id="view-sessions" style="display: none;">
+                <div class="table-view" style="max-height: 400px; overflow-y: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Start Time</th>
+                                <th>Duration</th>
+                                <th>Source IP</th>
+                                <th>Data (RX/TX)</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sessionTableBody">
+                            <tr><td colspan="5" style="text-align: center;">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="modal-buttons">
+                <button class="btn-modal btn-modal-secondary" onclick="closeModal('userDetailsModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => {
+                b.style.color = 'var(--text-dim)';
+                b.style.borderBottom = 'none';
+                b.classList.remove('active');
+            });
+            document.getElementById('tab-' + tab).style.color = 'white';
+            document.getElementById('tab-' + tab).style.borderBottom = '2px solid var(--accent)';
+            document.getElementById('tab-' + tab).classList.add('active');
+
+            document.getElementById('view-overview').style.display = tab === 'overview' ? 'block' : 'none';
+            document.getElementById('view-sessions').style.display = tab === 'sessions' ? 'block' : 'none';
+
+            if (tab === 'sessions') {
+                const username = document.getElementById('detailUsername').innerText;
+                fetchSessions(username);
+            }
+        }
+
+        async function fetchSessions(username) {
+            const tbody = document.getElementById('sessionTableBody');
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-dim);">Loading history...</td></tr>';
+
+            try {
+                const token = localStorage.getItem('admin_token');
+                const res = await fetch(`/api/users/${username}/sessions`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+
+                if (data.sessions.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-dim);">No session history found.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.sessions.map(s => `
+                    <tr>
+                        <td style="color: white; font-weight: 600;">${new Date(s.start_time).toLocaleString()}</td>
+                        <td style="color: var(--text-dim);">${s.duration}</td>
+                        <td style="font-family: monospace; color: var(--accent);">${s.source_ip || 'N/A'}</td>
+                        <td>
+                            <span style="color: var(--success);">↓ ${formatBytes(s.bytes_rx)}</span>
+                            <span style="color: var(--text-dim); margin: 0 4px;">/</span>
+                            <span style="color: var(--accent);">↑ ${formatBytes(s.bytes_tx)}</span>
+                        </td>
+                        <td>
+                            ${s.is_active ? 
+                                '<span class="status-badge status-active">Active</span>' : 
+                                '<span class="status-badge" style="background: rgba(255,255,255,0.1); color: var(--text-dim);">Closed</span>'}
+                        </td>
+                    </tr>
+                `).join('');
+
+            } catch (e) {
+                console.error(e);
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--error);">Failed to load sessions.</td></tr>';
+            }
+        }
+
+        function showUserDetails(username) {
+            document.getElementById('detailUsername').innerText = username;
+            switchTab('overview');
+            document.getElementById('userDetailsModal').classList.add('show');
+        }
+    </script>
 </body>
 
 </html>
