@@ -38,6 +38,9 @@ class User(Base):
     last_login: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     last_endpoint: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    
+    # Access Control
+    acl_profile: Mapped[str] = mapped_column(String(50), default="full") # full, internet-only, lan-only
 
 class Session(Base):
     __tablename__ = "vpn_sessions"
@@ -71,8 +74,11 @@ async def init_db():
                 print("Migration: Adding 'private_key' column...")
                 await conn.execute(text("ALTER TABLE users ADD COLUMN private_key TEXT NULL"))
                 
-            # 3. vpn_sessions (Ensure table exists - handled by create_all, but good to verify)
-            # No manual migration needed as create_all handles new tables
+            # 3. acl_profile
+            result = await conn.execute(text("SHOW COLUMNS FROM users LIKE 'acl_profile'"))
+            if not result.fetchone():
+                print("Migration: Adding 'acl_profile' column...")
+                await conn.execute(text("ALTER TABLE users ADD COLUMN acl_profile VARCHAR(50) DEFAULT 'full'"))
             
         except Exception as e:
             print(f"Migration error: {e}")
@@ -106,14 +112,15 @@ async def get_user_by_username(username: str):
         result = await session.execute(select(User).filter(User.username == username))
         return result.scalar_one_or_none()
 
-async def create_user(username: str, public_key: str, private_key: str, assigned_ip: str, client_os: str = 'android'):
+async def create_user(username: str, public_key: str, private_key: str, assigned_ip: str, client_os: str = 'android', acl_profile: str = 'full'):
     async with AsyncSessionLocal() as session:
         user = User(
             username=username, 
             public_key=public_key, 
             private_key=private_key, 
             assigned_ip=assigned_ip, 
-            client_os=client_os
+            client_os=client_os,
+            acl_profile=acl_profile
         )
         session.add(user)
         await session.commit()

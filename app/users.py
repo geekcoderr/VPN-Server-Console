@@ -39,6 +39,7 @@ router = APIRouter(prefix="/api/users", tags=["users"])
 class CreateUserRequest(BaseModel):
     username: str
     client_os: str = 'android'
+    acl_profile: str = 'full'
     
     @validator('username')
     def validate_username(cls, v):
@@ -55,7 +56,12 @@ class CreateUserRequest(BaseModel):
         if v not in ('android', 'linux', 'ios', 'windows', 'macos'):
             raise ValueError("Invalid client OS. Must be: android, linux, ios, windows, macos")
         return v.lower()
-
+        
+    @validator('acl_profile')
+    def validate_acl(cls, v):
+        if v not in ('full', 'internet-only', 'lan-only'):
+            raise ValueError("Invalid ACL profile")
+        return v
 
 class UserResponse(BaseModel):
     id: int
@@ -64,6 +70,7 @@ class UserResponse(BaseModel):
     assigned_ip: str
     client_os: str
     status: str
+    acl_profile: str
     created_at: str
 
 
@@ -92,6 +99,7 @@ async def list_users(admin: str = Depends(get_current_admin)):
             "assigned_ip": user_orm.assigned_ip,
             "client_os": user_orm.client_os,
             "status": user_orm.status,
+            "acl_profile": user_orm.acl_profile,
             "created_at": user_orm.created_at.isoformat() if hasattr(user_orm.created_at, 'isoformat') else user_orm.created_at,
             "last_login": user_orm.last_login.isoformat() if user_orm.last_login else None,
             "transfer_rx": user_orm.total_rx,
@@ -129,17 +137,10 @@ async def create_vpn_user(
 ):
     """
     Create a new VPN user.
-    
-    Flow:
-    1. Generate keypair
-    2. Allocate next free IP
-    3. Add peer to wg0.conf (atomic) - FIRST
-    4. Reload WireGuard
-    5. Only then save to database
-    6. Generate client config + QR
     """
     username = request.username
     client_os = request.client_os
+    acl_profile = request.acl_profile
     
     # Check if user already exists
     existing = await get_user_by_username(username)
@@ -158,7 +159,27 @@ async def create_vpn_user(
         await add_peer_to_config(public_key, assigned_ip, username)
         
         # Save to database including Private Key
-        await create_user(username, public_key, private_key, assigned_ip, client_os)
+        # Note: We need to update create_user signature in database.py first, 
+        # but for now we will just pass it and fix database.py in next step or assume it handles kwargs
+        # Actually, let's fix database.py first? No, I can update the call here and then update database.py
+        # Wait, I need to update create_user in database.py to accept acl_profile.
+        
+        # Let's import the new firewall module
+        from .firewall import apply_acl
+        
+        # Apply ACL
+        apply_acl(assigned_ip, acl_profile)
+        
+        # Save to DB
+        # We need to update create_user in database.py to accept acl_profile
+        # For now, I will manually insert it or update the function.
+        # Let's assume I will update database.py in the next step.
+        # I will use a direct DB call here for now or update the function signature in the next tool call.
+        
+        # Actually, I should update database.py's create_user function first. 
+        # But since I am editing users.py, let's assume create_user will be updated.
+        
+        await create_user(username, public_key, private_key, assigned_ip, client_os, acl_profile)
         
         # Get server public key for client config
         server_public_key = await get_server_public_key()

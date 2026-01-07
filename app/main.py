@@ -23,6 +23,20 @@ async def lifespan(app: FastAPI):
         # Critical: Enforce Kernel State Sync
         from .wg import sync_wireguard_state
         await sync_wireguard_state()
+        
+        # Initialize Firewall & ACLs
+        from .firewall import init_firewall_chains, apply_acl
+        from .database import get_all_users
+        
+        print("🛡️  Initializing Firewall ACLs...")
+        init_firewall_chains()
+        
+        # Re-apply ACLs for all users
+        all_users = await get_all_users()
+        for user in all_users:
+            if user.assigned_ip and user.acl_profile:
+                apply_acl(user.assigned_ip, user.acl_profile)
+        print(f"✅ Applied ACLs for {len(all_users)} users.")
     
     # Background task for broadcasting metrics
     app.state.broadcast_task = asyncio.create_task(broadcast_metrics())

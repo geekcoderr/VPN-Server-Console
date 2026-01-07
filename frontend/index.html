@@ -1241,6 +1241,16 @@
                 </div>
             </div>
 
+            <label
+                style="display: block; font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-top: 24px;">Access
+                Control</label>
+            <select id="newAclProfile"
+                style="width: 100%; padding: 16px; background: rgba(255,255,255,0.04); border: 2px solid var(--glass-border); border-radius: 18px; color: white; font-size: 15px; margin-top: 12px; cursor: pointer;">
+                <option value="full" style="background: #0a0a1a;">Full Access (Internet + LAN)</option>
+                <option value="internet-only" style="background: #0a0a1a;">Internet Only (Block LAN)</option>
+                <option value="lan-only" style="background: #0a0a1a;">LAN Only (No Internet)</option>
+            </select>
+
             <div style="display: flex; gap: 16px; margin-top: 40px;">
                 <button class="btn-create"
                     style="flex: 2; display: flex; align-items: center; justify-content: center; gap: 8px;"
@@ -1248,16 +1258,47 @@
                     Provision Secure Node
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                         stroke-width="2.5">
-                        <path d="M4.5 9.5L12 2l7.5 7.5"></path>
-                        <path d="M12 2v20"></path>
-                        <path d="M4.5 14.5l7.5 7.5 7.5-7.5"></path>
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
                     </svg>
                 </button>
-                <button class="btn-logout" style="flex: 1; border-color: var(--glass-border); color: var(--text-dim);"
-                    onclick="closeModal('provisionModal')">Cancel</button>
             </div>
         </div>
     </div>
+
+    <script>
+        // ... (previous scripts) ...
+
+        async function processProvision() {
+            const name = document.getElementById('newUsername').value;
+            if (!name) return triggerToast("Label is required for identity mapping.");
+
+            const aclProfile = document.getElementById('newAclProfile').value;
+
+            const res = await fetch('/api/users', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                },
+                body: JSON.stringify({
+                    username: name,
+                    client_os: selectedOS,
+                    acl_profile: aclProfile
+                })
+            });
+
+            // ... (rest of function) ...
+                        <path d="M4.5 9.5L12 2l7.5 7.5"></path>
+                        <path d="M12 2v20"></path>
+                        <path d="M4.5 14.5l7.5 7.5 7.5-7.5"></path>
+                    </svg >
+                </button >
+                <button class="btn-logout" style="flex: 1; border-color: var(--glass-border); color: var(--text-dim);"
+                    onclick="closeModal('provisionModal')">Cancel</button>
+            </div >
+        </div >
+    </div >
 
     <!-- Handshake Success Modal -->
     <div class="overlay" id="successModal">
@@ -1330,7 +1371,7 @@
         </div>
     </div>
 
-    <!-- Custom Interaction Modal -->
+    <!--Custom Interaction Modal-- >
     <div class="overlay" id="customModal">
         <div class="modal" style="max-width: 450px; padding: 48px; text-align: center;">
             <button class="modal-close" onclick="closeModal('customModal')">
@@ -1762,12 +1803,16 @@
     <div id="userDetailsModal" class="overlay">
         <div class="modal" style="max-width: 800px;">
             <div class="modal-close" onclick="closeModal('userDetailsModal')">✕</div>
-            <h2 style="margin-bottom: 24px;">User Details: <span id="detailUsername" style="color: var(--accent);"></span></h2>
-            
+            <h2 style="margin-bottom: 24px;">User Details: <span id="detailUsername"
+                    style="color: var(--accent);"></span></h2>
+
             <!-- Tabs -->
             <div style="display: flex; gap: 16px; margin-bottom: 24px; border-bottom: 1px solid var(--glass-border);">
-                <button onclick="switchTab('overview')" id="tab-overview" class="tab-btn active" style="padding: 10px 20px; background: none; border: none; color: white; cursor: pointer; border-bottom: 2px solid var(--accent);">Overview</button>
-                <button onclick="switchTab('sessions')" id="tab-sessions" class="tab-btn" style="padding: 10px 20px; background: none; border: none; color: var(--text-dim); cursor: pointer;">Session History</button>
+                <button onclick="switchTab('overview')" id="tab-overview" class="tab-btn active"
+                    style="padding: 10px 20px; background: none; border: none; color: white; cursor: pointer; border-bottom: 2px solid var(--accent);">Overview</button>
+                <button onclick="switchTab('sessions')" id="tab-sessions" class="tab-btn"
+                    style="padding: 10px 20px; background: none; border: none; color: var(--text-dim); cursor: pointer;">Session
+                    History</button>
             </div>
 
             <!-- Overview Tab -->
@@ -1806,7 +1851,9 @@
                             </tr>
                         </thead>
                         <tbody id="sessionTableBody">
-                            <tr><td colspan="5" style="text-align: center;">Loading...</td></tr>
+                            <tr>
+                                <td colspan="5" style="text-align: center;">Loading...</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
