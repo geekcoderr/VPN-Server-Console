@@ -21,7 +21,7 @@ NGINX_CONF="/etc/nginx/sites-available/vpn-control"
 
 echo ""
 echo "[1/6] Installing dependencies..."
-apt install -y python3 python3-venv python3-pip nginx certbot python3-certbot-nginx
+apt install -y python3 python3-venv python3-pip nginx certbot python3-certbot-nginx fail2ban
 
 # Enable IP Forwarding permanently
 echo "Enabling IPv4 Forwarding..."
@@ -47,7 +47,15 @@ echo ""
 echo "[3/6] Installing systemd service..."
 cp $APP_DIR/systemd/vpn-control.service /etc/systemd/system/
 systemctl daemon-reload
+systemctl daemon-reload
 systemctl enable vpn-control
+
+echo ""
+echo "[3.5/6] Configuring Fail2Ban..."
+cp $APP_DIR/fail2ban/filter.d/vpn-control.conf /etc/fail2ban/filter.d/
+cp $APP_DIR/fail2ban/jail.d/vpn-control.conf /etc/fail2ban/jail.d/
+systemctl restart fail2ban
+systemctl enable fail2ban
 
 echo ""
 echo ""

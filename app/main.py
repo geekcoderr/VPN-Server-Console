@@ -120,6 +120,7 @@ async def broadcast_metrics():
 
 app = FastAPI(
     title="VPN Control API",
+    version="3.3.0",
     lifespan=lifespan
 )
 

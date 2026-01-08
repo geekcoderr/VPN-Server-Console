@@ -260,10 +260,15 @@
                     <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                 </svg>
             </div>
+            <div class="input-group" id="totpGroup" style="display: none;">
+                <label>2FA Code</label>
+                <input type="text" id="totp_code" name="totp_code" placeholder="000000" maxlength="6"
+                    style="text-align: center; letter-spacing: 4px; font-size: 20px;">
+            </div>
             <button type="submit" class="btn-auth">Establish Terminal</button>
         </form>
 
-        <div class="footer">GeekSTunnel v3.2.1 &copy; 2026</div>
+        <div class="footer">GeekSTunnel v3.3.0 &copy; 2026</div>
     </div>
 
     <script>
@@ -292,6 +297,16 @@
                     window.location.href = "/index.html";
                 } else {
                     const data = await res.json();
+                    if (res.status === 403 && data.detail === "2FA Required") {
+                        // Show 2FA input
+                        document.getElementById('username').parentElement.style.display = 'none';
+                        document.getElementById('password').parentElement.style.display = 'none';
+                        document.getElementById('totpGroup').style.display = 'block';
+                        document.getElementById('totp_code').required = true;
+                        document.getElementById('totp_code').focus();
+                        errDiv.style.display = 'none';
+                        return;
+                    }
                     errDiv.innerText = data.detail || "Authentication Failed";
                     errDiv.style.display = 'block';
                 }

@@ -2,8 +2,9 @@ import asyncio
 import redis.asyncio as redis
 import json
 from datetime import datetime
-from .config import REDIS_HOST, REDIS_PORT, REDIS_DB
+from .config import REDIS_HOST, REDIS_PORT, REDIS_DB, SMTP_USER
 from .database import get_user_by_ip
+from .email import send_email
 
 async def alert_worker():
     print("🚨 Alert Worker Started...")
@@ -34,7 +35,10 @@ async def alert_worker():
                 
                 print(f"⚠️  ALERT: User {username} ({user_ip}) visited {domain} at {datetime.now()}")
                 
-                # TODO: Send Email/Slack
+                # Send Email Alert
+                subject = f"🚨 Security Alert: {username} visited {domain}"
+                body = f"User: {username}\nIP: {user_ip}\nDomain: {domain}\nTime: {datetime.now()}\n\nThis is an automated security alert."
+                send_email(SMTP_USER, subject, body)
                 
         except Exception as e:
             print(f"Worker Error: {e}")

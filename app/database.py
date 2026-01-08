@@ -21,6 +21,7 @@ class Admin(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     username: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    totp_secret: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
 
 class User(Base):
     __tablename__ = "users"
@@ -103,7 +104,12 @@ async def get_admin():
     async with AsyncSessionLocal() as session:
         result = await session.execute(select(Admin).filter(Admin.id == 1))
         admin = result.scalar_one_or_none()
-        return {"id": admin.id, "username": admin.username, "password_hash": admin.password_hash} if admin else None
+        return {
+            "id": admin.id, 
+            "username": admin.username, 
+            "password_hash": admin.password_hash,
+            "totp_secret": admin.totp_secret
+        } if admin else None
 
 async def create_admin(username: str, password_hash: str):
     async with AsyncSessionLocal() as session:

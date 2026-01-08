@@ -8,73 +8,23 @@ from fastapi import APIRouter, Request, Response, HTTPException, Form, Depends
 from fastapi.responses import RedirectResponse
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
-from .database import get_admin, create_admin
+from .database import get_admin, create_admin, AsyncSessionLocal, Admin
 from .config import SESSION_SECRET_KEY, SESSION_MAX_AGE, DEFAULT_ADMIN_USER, DEFAULT_ADMIN_PASS
 from .audit import log_admin_login
+from .totp import random_base32, get_provisioning_uri, verify_totp
+from .qr import generate_qr_data_uri
+from sqlalchemy import update
 
 router = APIRouter()
 
-# Session serializer
-serializer = URLSafeTimedSerializer(SESSION_SECRET_KEY)
-
-SESSION_COOKIE_NAME = "vpn_admin_session"
-
-
-def hash_password(password: str) -> str:
-    """Hash a password using bcrypt."""
-    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-
-
-def verify_password(password: str, password_hash: str) -> bool:
-    """Verify a password against a bcrypt hash."""
-    return bcrypt.checkpw(password.encode(), password_hash.encode())
-
-
-async def ensure_admin_exists():
-    """Create default admin user if none exists."""
-    admin = await get_admin()
-    if not admin:
-        password_hash = hash_password(DEFAULT_ADMIN_PASS)
-        await create_admin(DEFAULT_ADMIN_USER, password_hash)
-
-
-async def get_current_admin(request: Request) -> str:
-    """
-    Dependency to get current authenticated admin.
-    Raises HTTPException if not authenticated.
-    """
-    session_cookie = request.cookies.get(SESSION_COOKIE_NAME)
-    if not session_cookie:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    
-    try:
-        username = serializer.loads(session_cookie, max_age=SESSION_MAX_AGE)
-        return username
-    except (BadSignature, SignatureExpired):
-        raise HTTPException(status_code=401, detail="Session expired")
-
-
-def require_auth(request: Request) -> str:
-    """
-    Synchronous version for template rendering.
-    Returns None if not authenticated (for redirect handling).
-    """
-    session_cookie = request.cookies.get(SESSION_COOKIE_NAME)
-    if not session_cookie:
-        return None
-    
-    try:
-        username = serializer.loads(session_cookie, max_age=SESSION_MAX_AGE)
-        return username
-    except (BadSignature, SignatureExpired):
-        return None
-
+# ... (existing code) ...
 
 @router.post("/login")
 async def login(
     request: Request,
     username: str = Form(...),
-    password: str = Form(...)
+    password: str = Form(...),
+    totp_code: str = Form(None)
 ):
     """Process login form."""
     client_ip = request.client.host if request.client else "unknown"
@@ -87,6 +37,16 @@ async def login(
     if not verify_password(password, admin['password_hash']):
         log_admin_login(username, success=False, ip=client_ip)
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    # 2FA Check
+    if admin.get('totp_secret'):
+        if not totp_code:
+            # Signal frontend to show 2FA input
+            raise HTTPException(status_code=403, detail="2FA Required")
+        
+        if not verify_totp(admin['totp_secret'], totp_code):
+            log_admin_login(username, success=False, ip=client_ip)
+            raise HTTPException(status_code=401, detail="Invalid 2FA Code")
     
     # Create session
     session_token = serializer.dumps(username)
@@ -117,7 +77,11 @@ async def logout():
 @router.get("/me")
 async def get_me(admin: str = Depends(get_current_admin)):
     """Get current admin info."""
-    return {"username": admin}
+    admin_data = await get_admin()
+    return {
+        "username": admin,
+        "2fa_enabled": bool(admin_data.get('totp_secret'))
+    }
 
 
 @router.post("/change-password")
@@ -140,3 +104,39 @@ async def change_password(
     await create_admin(admin, new_hash)
     
     return {"message": "Password changed successfully"}
+
+@router.post("/2fa/setup")
+async def setup_2fa(admin: str = Depends(get_current_admin)):
+    secret = random_base32()
+    uri = get_provisioning_uri(admin, secret)
+    qr = generate_qr_data_uri(uri)
+    return {"secret": secret, "qr_code": qr}
+
+@router.post("/2fa/verify")
+async def verify_2fa_setup(
+    request: Request,
+    secret: str = Form(...),
+    code: str = Form(...),
+    admin: str = Depends(get_current_admin)
+):
+    if verify_totp(secret, code):
+        # Save to DB
+        async with AsyncSessionLocal() as session:
+            await session.execute(update(Admin).where(Admin.username == admin).values(totp_secret=secret))
+            await session.commit()
+        return {"status": "enabled"}
+    raise HTTPException(status_code=400, detail="Invalid code")
+
+@router.post("/2fa/disable")
+async def disable_2fa(
+    password: str = Form(...),
+    admin: str = Depends(get_current_admin)
+):
+    admin_data = await get_admin()
+    if not verify_password(password, admin_data['password_hash']):
+        raise HTTPException(status_code=400, detail="Invalid password")
+        
+    async with AsyncSessionLocal() as session:
+        await session.execute(update(Admin).where(Admin.username == admin).values(totp_secret=None))
+        await session.commit()
+    return {"status": "disabled"}

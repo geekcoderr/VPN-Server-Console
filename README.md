@@ -1,110 +1,96 @@
-# VPN Control Plane
+# GeekSTunnel - Enterprise VPN Control Plane
 
-Commercial-grade WireGuard VPN management system.
+**GeekSTunnel** is a commercial-grade, high-performance WireGuard VPN management system designed for enterprise security, compliance, and ease of use.
 
-## Quick Start
+![GeekSTunnel Dashboard](https://raw.githubusercontent.com/geekcoderr/vpn-control/main/docs/dashboard.png)
+
+## 🚀 Key Features
+
+### 🛡️ Security & Hardening
+-   **Admin 2FA (TOTP):** Secure the admin console with Time-based One-Time Passwords (Google Authenticator).
+-   **Fail2Ban Integration:** Automatic IP banning after 3 failed admin login attempts.
+-   **Strict ACLs:** Granular access control (Internet-only, Intranet-only, Full Access).
+-   **Persistent Keys:** Private keys are securely stored in the database (MySQL) for consistent user experience.
+
+### ⚡ High-Performance Architecture
+-   **Real-time URL Alerting:** Monitor and alert on restricted site access (e.g., Social Media) with **Zero Latency** using Redis & CoreDNS.
+-   **Hybrid Database:** MySQL for core data + Redis for high-speed caching and alert queues.
+-   **Async Workers:** Email sending and heavy lifting are decoupled from the main request path.
+
+### 📱 Fluid UI (v3.3.0)
+-   **Mobile-First Design:** Fully responsive dashboard that works perfectly on phones, tablets, and desktops.
+-   **Glassmorphism Aesthetic:** Modern, dark-mode UI with blur effects and smooth animations.
+-   **QR Code Provisioning:** Instant mobile onboarding via QR codes.
+
+### 🆔 Advanced Onboarding
+-   **Identity Verification:** Invite users via Email.
+-   **OTP Verification:** Users must verify their email with a One-Time Password before receiving their VPN config.
+
+## 🛠️ Installation
+
+### Prerequisites
+-   Ubuntu 20.04/22.04 LTS
+-   Root access
+-   Domain name pointing to the server
+
+### Quick Start (Automated)
 
 ```bash
-# 1. Copy to server
-sudo cp -r vpn-control /opt/
-
-# 2. Create virtual environment
+# 1. Clone the repository
+git clone https://github.com/geekcoderr/vpn-control.git /opt/vpn-control
 cd /opt/vpn-control
-sudo python3 -m venv venv
-sudo ./venv/bin/pip install -r requirements.txt
 
-# 3. Configure (edit these values)
-export VPN_ENDPOINT="your-vpn-server.com:51820"
-export SESSION_SECRET=$(openssl rand -hex 32)
-
-# 4. Install systemd service
-sudo cp systemd/vpn-control.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now vpn-control
-
-# 5. Access dashboard
-curl http://127.0.0.1:8000/health
+# 2. Run the setup script
+sudo ./setup.sh
 ```
 
-## Default Credentials
+The setup script will:
+-   Install all dependencies (Python, Nginx, Redis, WireGuard, etc.).
+-   Configure the database and virtual environment.
+-   Set up Nginx with SSL (Let's Encrypt).
+-   Install and configure Fail2Ban.
+-   Start the systemd services.
 
-- **Username:** `geek`
-- **Password:** `ChangeMeNow123!`
+## ⚙️ Configuration
 
-⚠️ Change these immediately after first login!
-
-## Configuration
-
-Edit `/opt/vpn-control/app/config.py` or set environment variables:
+Configuration is managed in `/opt/vpn-control/app/config.py`.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `VPN_ENDPOINT` | Server public hostname:port | `vpn.example.com:51820` |
-| `SESSION_SECRET` | Session signing key | (auto-generated) |
+| `VPN_SERVER_ENDPOINT` | Public Hostname:Port | `wg.example.com:51820` |
+| `VPN_SUBNET` | Internal VPN Subnet | `10.50.0.0/24` |
+| `REDIS_HOST` | Redis Host | `127.0.0.1` |
+| `SMTP_SERVER` | SMTP Server for Emails | `smtp.gmail.com` |
 
-## Nginx Reverse Proxy (Optional)
+## 👥 Admin Management
 
-```nginx
-server {
-    listen 443 ssl;
-    server_name vpn-admin.example.com;
+**Default Credentials:**
+-   **Username:** `geek`
+-   **Password:** `ChangeMeNow123!`
 
-    ssl_certificate /path/to/cert.pem;
-    ssl_certificate_key /path/to/key.pem;
-
-    location / {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
+**Reset Password:**
+```bash
+cd /opt/vpn-control
+sudo ./venv/bin/python3 reset_password.py --username admin --password NewStrongPassword
 ```
 
-## Project Structure
+## 🔍 Architecture
 
-```
-/opt/vpn-control/
-├── app/
-│   ├── main.py      # FastAPI app
-│   ├── auth.py      # Admin authentication
-│   ├── users.py     # User lifecycle API
-│   ├── wg.py        # WireGuard management
-│   ├── qr.py        # QR code generation
-│   ├── database.py  # SQLite models
-│   ├── config.py    # Configuration
-│   └── audit.py     # Audit logging
-├── templates/
-│   ├── login.html   # Login page
-│   └── admin.html   # Dashboard
-├── data/
-│   ├── users.db     # User database
-│   └── audit.log    # Audit log
-└── systemd/
-    └── vpn-control.service
+```mermaid
+graph TD
+    User[User Device] -->|DNS Query| CoreDNS
+    CoreDNS -->|Check| Redis[Redis Cache]
+    Redis -->|Hit?| AlertQueue[Alert Queue]
+    AlertQueue -->|Pop| Worker[Async Worker]
+    Worker -->|Send| SMTP[Email Gateway]
+    
+    User -->|HTTPS| Nginx
+    Nginx -->|Proxy| FastAPI[App Server]
+    FastAPI -->|Read/Write| MySQL[MySQL DB]
+    FastAPI -->|Manage| WG[WireGuard Interface]
 ```
 
-## API Endpoints
+## 📜 License
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/health` | Health check |
-| GET | `/` | Admin dashboard |
-| GET | `/login` | Login page |
-| POST | `/auth/login` | Login |
-| POST | `/auth/logout` | Logout |
-| GET | `/api/users` | List all users |
-| POST | `/api/users` | Create user |
-| DELETE | `/api/users/{username}` | Delete user |
-| PATCH | `/api/users/{username}/toggle` | Enable/disable user |
-| GET | `/api/users/{username}/config` | Regenerate config |
-
-## Safety Features
-
-- ✅ Atomic config updates with file locking
-- ✅ Rollback on WireGuard reload failure
-- ✅ No duplicate IPs or public keys
-- ✅ Client private keys never stored
-- ✅ Bcrypt password hashing
-- ✅ Audit logging (metadata only)
+Proprietary / Enterprise License.
+Copyright © 2026 GeekSTunnel.
