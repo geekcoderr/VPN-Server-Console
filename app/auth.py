@@ -27,7 +27,12 @@ async def login(
     totp_code: str = Form(None)
 ):
     """Process login form."""
-    client_ip = request.client.host if request.client else "unknown"
+    # Get real client IP (handle Nginx proxy)
+    client_ip = request.headers.get("X-Forwarded-For")
+    if client_ip:
+        client_ip = client_ip.split(",")[0].strip()
+    else:
+        client_ip = request.client.host if request.client else "unknown"
     
     admin = await get_admin()
     if not admin or admin['username'] != username:
