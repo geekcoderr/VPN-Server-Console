@@ -36,14 +36,26 @@ def run_iptables(args):
         return False
 
 def init_firewall_chains():
-    """Initialize custom chains for ACLs."""
-    # Create chains if they don't exist
+    """Initialize custom chains and DNS enforcement."""
+    from .config import WG_INTERFACE, VPN_SERVER_IP
+    
+    # 1. Create chains if they don't exist
     run_iptables(["-N", "VPN_ACL"])
     
-    # Ensure VPN_ACL is hooked into FORWARD chain (at the top)
-    # We use -C to check if rule exists, if not we add it
+    # 2. Hook VPN_ACL into FORWARD chain
     if not run_iptables(["-C", "FORWARD", "-j", "VPN_ACL"]):
         run_iptables(["-I", "FORWARD", "1", "-j", "VPN_ACL"])
+
+    # 3. DNS Enforcement (Hijacking)
+    # Intercept port 53 traffic from VPN interface and redirect to internal CoreDNS
+    # We use the 'nat' table PREROUTING chain
+    for proto in ["udp", "tcp"]:
+        dnat_rule = ["-t", "nat", "-A", "PREROUTING", "-i", WG_INTERFACE, "-p", proto, "--dport", "53", "-j", "DNAT", "--to-destination", f"{VPN_SERVER_IP}:53"]
+        check_rule = ["-t", "nat", "-C", "PREROUTING", "-i", WG_INTERFACE, "-p", proto, "--dport", "53", "-j", "DNAT", "--to-destination", f"{VPN_SERVER_IP}:53"]
+        
+        if not run_iptables(check_rule):
+            run_iptables(dnat_rule)
+            print(f"🛡️  DNS Hijacking enabled for {proto} (forced to {VPN_SERVER_IP})")
 
 def apply_acl(ip: str, profile: str):
     """
