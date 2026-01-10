@@ -34,8 +34,12 @@ async def sync_blacklist_to_hosts():
     with open(BLOCKED_HOSTS_PATH, "w") as f:
         f.write("# CoreDNS Blocked Hosts - AUTO-GENERATED\n")
         for domain in domains:
-            if domain.strip():
-                f.write(f"0.0.0.0 {domain.strip()}\n")
+            d = domain.strip()
+            if d:
+                f.write(f"0.0.0.0 {d}\n")
+                # Automatically block www. subdomain if not already present
+                if not d.startswith("www."):
+                    f.write(f"0.0.0.0 www.{d}\n")
     
     # Note: CoreDNS with 'hosts' plugin and 'fallthrough' 
     # will reload the file automatically if it changes (depending on config)

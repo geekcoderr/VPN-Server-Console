@@ -35,6 +35,15 @@ def run_iptables(args):
             logging.error(f"iptables error: {stderr}")
         return False
 
+def run_ip6tables(args):
+    """Run an ip6tables command."""
+    cmd = ["ip6tables"] + args
+    try:
+        subprocess.run(cmd, check=True, capture_output=True)
+        return True
+    except subprocess.CalledProcessError:
+        return False
+
 def init_firewall_chains():
     """Initialize custom chains and DNS enforcement."""
     from .config import WG_INTERFACE, VPN_SERVER_IP
@@ -56,6 +65,18 @@ def init_firewall_chains():
         if not run_iptables(check_rule):
             run_iptables(dnat_rule)
             print(f"🛡️  DNS Hijacking enabled for {proto} (forced to {VPN_SERVER_IP})")
+
+    # 4. Block DNS-over-TLS (DoT) - Port 853
+    # This forces devices to fall back to standard DNS (port 53) which we hijack
+    dot_rule = ["-A", "VPN_ACL", "-i", WG_INTERFACE, "-p", "tcp", "--dport", "853", "-j", "DROP"]
+    if not run_iptables(["-C", "VPN_ACL", "-i", WG_INTERFACE, "-p", "tcp", "--dport", "853", "-j", "DROP"]):
+        run_iptables(dot_rule)
+        print("🛡️  DNS-over-TLS (Port 853) blocked to prevent bypass.")
+
+    # 5. Block IPv6 DNS (Leaks)
+    # We don't support IPv6 DNS filtering yet, so we block it to force IPv4 fallback
+    for proto in ["udp", "tcp"]:
+        run_ip6tables(["-A", "FORWARD", "-i", WG_INTERFACE, "-p", proto, "--dport", "53", "-j", "DROP"])
 
 def apply_acl(ip: str, profile: str):
     """
