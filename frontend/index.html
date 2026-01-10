@@ -1445,30 +1445,41 @@
 
             <!-- 2FA Section -->
             <div
-                style="margin-bottom: 32px; padding: 20px; background: rgba(99, 102, 241, 0.05); border: 1px solid var(--glass-border); border-radius: 16px;">
-                <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2.5">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                    </svg>
-                    Two-Factor Authentication
-                </h4>
-                <div id="2fa-status" style="margin-bottom: 16px; font-size: 14px; color: var(--text-dim);">
-                    Checking status...
-                </div>
-                <div id="2fa-setup-area" style="display: none;">
-                    <div id="2fa-qr"
-                        style="background: white; padding: 10px; border-radius: 8px; width: 180px; margin: 0 auto 16px;">
+                style="margin-bottom: 32px; padding: 24px; background: rgba(99, 102, 241, 0.05); border: 1px solid var(--glass-border); border-radius: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h4 style="display: flex; align-items: center; gap: 10px; margin: 0;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                        Two-Factor Auth
+                    </h4>
+                    <div id="2fa-badge"
+                        style="font-size: 10px; font-weight: 800; text-transform: uppercase; padding: 4px 10px; border-radius: 20px; letter-spacing: 1px;">
+                        Checking...
                     </div>
-                    <p style="font-size: 12px; color: var(--text-dim); margin-bottom: 16px;">Scan this QR code with
-                        Google Authenticator or Authy.</p>
-                    <input type="text" id="verifyCode" placeholder="6-digit code" maxlength="6"
-                        style="width: 100%; padding: 12px; margin-bottom: 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border); border-radius: 8px; color: white; text-align: center; letter-spacing: 4px; font-weight: 700;">
+                </div>
+
+                <div id="2fa-status-text"
+                    style="margin-bottom: 20px; font-size: 13px; color: var(--text-dim); line-height: 1.5;">
+                    Verifying security posture...
+                </div>
+
+                <div id="2fa-setup-area" style="display: none; text-align: center; padding-top: 10px;">
+                    <div id="2fa-qr"
+                        style="background: white; padding: 12px; border-radius: 12px; width: 180px; margin: 0 auto 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+                    </div>
+                    <p style="font-size: 12px; color: var(--text-dim); margin-bottom: 20px; padding: 0 20px;">Scan this
+                        QR code with Google Authenticator or Authy to link your account.</p>
+                    <input type="text" id="verifyCode" placeholder="000000" maxlength="6"
+                        style="width: 160px; padding: 14px; margin-bottom: 20px; background: rgba(255,255,255,0.04); border: 2px solid var(--glass-border); border-radius: 14px; color: white; text-align: center; letter-spacing: 6px; font-weight: 800; font-size: 20px; transition: 0.3s;"
+                        onfocus="this.style.borderColor='var(--accent)'"
+                        onblur="this.style.borderColor='var(--glass-border)'">
                     <button class="btn-create" style="width: 100%;" onclick="verify2FASetup()">Verify & Enable</button>
                 </div>
-                <button id="btn-setup-2fa" class="btn-create" style="width: 100%;" onclick="setup2FA()">Setup
-                    2FA</button>
+                <button id="btn-setup-2fa" class="btn-create" style="width: 100%; display: none;"
+                    onclick="setup2FA()">Configure MFA</button>
             </div>
 
             <!-- Password Change -->
@@ -1566,6 +1577,7 @@
                 if (!res.ok) { window.location.href = "/login.html"; return; }
                 const data = await res.json();
                 document.getElementById('adminName').innerText = `Primary Admin: ${data.username}`;
+                update2FAUI(data['2fa_enabled']);
 
                 await loadNodes();
                 startLiveFeeds();
@@ -1975,18 +1987,41 @@
             }
         }
 
+        function update2FAUI(enabled) {
+            const badge = document.getElementById('2fa-badge');
+            const text = document.getElementById('2fa-status-text');
+            const btn = document.getElementById('btn-setup-2fa');
+            const area = document.getElementById('2fa-setup-area');
+
+            if (enabled) {
+                badge.innerText = "Verified";
+                badge.style.background = "rgba(16, 185, 129, 0.15)";
+                badge.style.color = "var(--success)";
+                text.innerText = "Your account is protected with hardware-grade two-factor authentication.";
+                btn.style.display = 'none';
+                area.style.display = 'none';
+            } else {
+                badge.innerText = "Not Configured";
+                badge.style.background = "rgba(239, 68, 68, 0.15)";
+                badge.style.color = "var(--error)";
+                text.innerText = "MFA is currently disabled. We strongly recommend enabling it to secure your console.";
+                btn.style.display = 'block';
+                area.style.display = 'none';
+            }
+        }
+
         async function verify2FASetup() {
             const code = document.getElementById('verifyCode').value;
+            if (code.length !== 6) return triggerToast("Please enter the 6-digit code.");
+
             const res = await fetch('/auth/2fa/verify', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ secret: tfaSecret, code })
             });
             if (res.ok) {
                 triggerToast("2FA Enabled Successfully");
-                closeModal('settingsModal');
+                update2FAUI(true);
             } else {
                 triggerToast("Invalid Verification Code");
             }
