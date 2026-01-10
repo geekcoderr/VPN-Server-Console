@@ -20,6 +20,10 @@ async def lifespan(app: FastAPI):
         await init_db()
         await ensure_admin_exists()
         
+        # Sync Blacklist to CoreDNS
+        from .alerts import sync_blacklist_to_hosts
+        await sync_blacklist_to_hosts()
+        
         # Critical: Enforce Kernel State Sync
         from .wg import sync_wireguard_state
         await sync_wireguard_state()

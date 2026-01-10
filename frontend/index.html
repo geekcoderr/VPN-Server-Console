@@ -2013,40 +2013,75 @@
 
         /** BLACKLIST MANAGEMENT **/
         async function fetchBlacklist() {
-            const res = await fetch('/api/alerts/blacklist');
-            const domains = await res.json();
-            const tbody = document.getElementById('blacklistTableBody');
-            tbody.innerHTML = domains.map(d => `
-                <tr>
-                    <td style="color: white; font-weight: 600;">${d}</td>
-                    <td style="text-align: right;">
-                        <button onclick="deleteBlacklist('${d}')" style="background:none; border:none; color:var(--error); cursor:pointer;">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
+            try {
+                const res = await fetch('/api/alerts/blacklist');
+                const data = await res.json();
+                const domains = data.domains || [];
+                const tbody = document.getElementById('blacklistTableBody');
+                if (domains.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="2" style="text-align:center; padding:40px; color:var(--text-dim);">No restricted domains found.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = domains.map(d => `
+                    <tr>
+                        <td style="color: white; font-weight: 600;">${d}</td>
+                        <td style="text-align: right;">
+                            <button onclick="deleteBlacklist('${d}', this)" style="background:none; border:none; color:var(--error); cursor:pointer; transition: 0.3s;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                console.error("Failed to fetch blacklist:", e);
+            }
         }
 
         async function addToBlacklist() {
-            const domain = document.getElementById('newDomain').value;
+            const btn = event.target.closest('button');
+            const input = document.getElementById('newDomain');
+            const domain = input.value.trim();
             if (!domain) return;
-            await fetch('/api/alerts/blacklist', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ domain })
-            });
-            document.getElementById('newDomain').value = '';
-            fetchBlacklist();
+
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = 'Restricting...';
+
+            try {
+                const res = await fetch('/api/alerts/blacklist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ domain })
+                });
+                if (res.ok) {
+                    input.value = '';
+                    triggerToast(`Domain <b class="alert-name">${domain}</b> restricted.`);
+                    fetchBlacklist();
+                }
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
         }
 
-        async function deleteBlacklist(domain) {
-            await fetch(`/api/alerts/blacklist/${domain}`, {
-                method: 'DELETE'
-            });
-            fetchBlacklist();
+        async function deleteBlacklist(domain, btn) {
+            if (!confirm(`Remove restriction for ${domain}?`)) return;
+
+            btn.style.opacity = '0.5';
+            btn.style.pointerEvents = 'none';
+
+            try {
+                const res = await fetch(`/api/alerts/blacklist/${domain}`, {
+                    method: 'DELETE'
+                });
+                if (res.ok) {
+                    triggerToast(`Restriction removed for <b class="alert-name">${domain}</b>.`);
+                    fetchBlacklist();
+                }
+            } finally {
+                btn.style.opacity = '1';
+                btn.style.pointerEvents = 'auto';
+            }
         }
 
         /** SESSION HISTORY **/

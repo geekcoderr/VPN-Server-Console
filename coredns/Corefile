@@ -1,6 +1,6 @@
 . {
-    redis {
-        address vpn-redis:6379
+    hosts /etc/coredns/blocked.hosts {
+        fallthrough
     }
     forward . 8.8.8.8 1.1.1.1
     log

@@ -45,6 +45,7 @@ services:
       - vpn-fe-net
     volumes:
       - ./coredns/Corefile:/etc/coredns/Corefile:ro
+      - ./coredns/blocked.hosts:/etc/coredns/blocked.hosts:ro
     command: -conf /etc/coredns/Corefile
 
 networks:
