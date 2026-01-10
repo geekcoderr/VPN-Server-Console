@@ -17,7 +17,36 @@ from sqlalchemy import update
 
 router = APIRouter()
 
-# ... (existing code) ...
+SESSION_COOKIE_NAME = "admin_session"
+serializer = URLSafeTimedSerializer(SESSION_SECRET_KEY)
+
+def hash_password(password: str) -> str:
+    """Hash a password using bcrypt."""
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+
+def verify_password(password: str, hashed: str) -> bool:
+    """Verify a password against its hash."""
+    return bcrypt.checkpw(password.encode(), hashed.encode())
+
+async def get_current_admin(request: Request) -> str:
+    """Dependency to get current admin from session cookie."""
+    session_token = request.cookies.get(SESSION_COOKIE_NAME)
+    if not session_token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    try:
+        username = serializer.loads(session_token, max_age=SESSION_MAX_AGE)
+        return username
+    except (BadSignature, SignatureExpired):
+        raise HTTPException(status_code=401, detail="Invalid or expired session")
+
+async def ensure_admin_exists():
+    """Ensure at least one admin exists in the database."""
+    admin = await get_admin()
+    if not admin:
+        print(f"Creating default admin: {DEFAULT_ADMIN_USER}")
+        hashed = hash_password(DEFAULT_ADMIN_PASS)
+        await create_admin(DEFAULT_ADMIN_USER, hashed)
 
 @router.post("/login")
 async def login(
