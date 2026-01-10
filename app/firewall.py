@@ -24,9 +24,15 @@ def run_iptables(args):
         subprocess.run(cmd, check=True, capture_output=True)
         return True
     except subprocess.CalledProcessError as e:
-        # Ignore "rule does not exist" errors during cleanup
-        if "Bad rule" not in str(e.stderr):
-            logging.error(f"iptables error: {e.stderr.decode().strip()}")
+        stderr = e.stderr.decode().strip()
+        # Ignore common errors during cleanup or initialization for idempotency
+        ignore_msgs = [
+            "Bad rule",             # Rule doesn't exist during deletion
+            "Chain already exists", # Chain already exists during creation
+            "already exists"        # Generic already exists
+        ]
+        if not any(msg in stderr for msg in ignore_msgs):
+            logging.error(f"iptables error: {stderr}")
         return False
 
 def init_firewall_chains():
