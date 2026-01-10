@@ -26,6 +26,11 @@ async def sync_blacklist_to_hosts():
     # Ensure directory exists
     os.makedirs(os.path.dirname(BLOCKED_HOSTS_PATH), exist_ok=True)
     
+    # Robustness: If BLOCKED_HOSTS_PATH is a directory (Docker issue), remove it
+    if os.path.isdir(BLOCKED_HOSTS_PATH):
+        import shutil
+        shutil.rmtree(BLOCKED_HOSTS_PATH)
+    
     with open(BLOCKED_HOSTS_PATH, "w") as f:
         f.write("# CoreDNS Blocked Hosts - AUTO-GENERATED\n")
         for domain in domains:
