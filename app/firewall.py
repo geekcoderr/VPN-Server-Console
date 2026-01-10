@@ -73,14 +73,14 @@ def apply_acl(ip: str, profile: str):
         run_iptables(["-A", "VPN_ACL", "-s", ip, "-j", "ACCEPT"])
 
     elif profile == PROFILE_INTERNET_ONLY:
-        # Block access to Private Networks
+        # Internet Only: Block access to Private Networks (LAN)
         for net in PRIVATE_NETWORKS:
             run_iptables(["-A", "VPN_ACL", "-s", ip, "-d", net, "-j", "DROP"])
         # Allow everything else (Internet)
         run_iptables(["-A", "VPN_ACL", "-s", ip, "-j", "ACCEPT"])
 
     elif profile == PROFILE_LAN_ONLY:
-        # Allow access to Private Networks
+        # LAN Only: Allow access to Private Networks, block Internet
         for net in PRIVATE_NETWORKS:
             run_iptables(["-A", "VPN_ACL", "-s", ip, "-d", net, "-j", "ACCEPT"])
         # Block everything else (Internet)

@@ -60,6 +60,7 @@ systemctl enable fail2ban
 echo ""
 echo ""
 echo "[4/6] Configuring Service Architecture..."
+chmod 644 $APP_DIR/coredns/Corefile
 
 # Check if we are in Hybrid Mode (Docker Nginx)
 if docker ps | grep -q "vpn-nginx"; then

@@ -1218,6 +1218,43 @@
                     onblur="this.style.borderColor='var(--glass-border)'">
             </div>
 
+            <div style="margin-bottom: 32px;">
+                <label
+                    style="display: block; font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">Access
+                    Level</label>
+                <div class="os-selector" id="aclSelector" style="grid-template-columns: repeat(3, 1fr);">
+                    <div class="os-option active" onclick="setACL('full', this)">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        </svg>
+                        <span>Full Access</span>
+                        <small>Internet + LAN</small>
+                    </div>
+                    <div class="os-option" onclick="setACL('internet-only', this)">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="2" y1="12" x2="22" y2="12" />
+                            <path
+                                d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                        </svg>
+                        <span>Internet Only</span>
+                        <small>Blocks LAN</small>
+                    </div>
+                    <div class="os-option" onclick="setACL('lan-only', this)">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                            <line x1="8" y1="21" x2="16" y2="21" />
+                            <line x1="12" y1="17" x2="12" y2="21" />
+                        </svg>
+                        <span>LAN Only</span>
+                        <small>No Internet</small>
+                    </div>
+                </div>
+            </div>
+
             <label
                 style="display: block; font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px;">Target
                 Architecture</label>
@@ -1462,9 +1499,12 @@
 
             <div style="display: flex; gap: 12px; margin-bottom: 24px;">
                 <input type="text" id="newDomain" placeholder="e.g. facebook.com"
-                    style="flex: 1; padding: 14px; background: rgba(255,255,255,0.04); border: 2px solid var(--glass-border); border-radius: 14px; color: white; font-size: 15px;">
-                <button onclick="addToBlacklist()" class="btn-create" style="padding: 0 24px;">
-                    Block
+                    style="flex: 1; padding: 14px; background: rgba(255,255,255,0.04); border: 2px solid var(--glass-border); border-radius: 14px; color: white; font-size: 15px; transition: 0.3s;"
+                    onfocus="this.style.borderColor='var(--accent)'"
+                    onblur="this.style.borderColor='var(--glass-border)'">
+                <button onclick="addToBlacklist()" class="btn-create"
+                    style="padding: 0 24px; background: var(--error); box-shadow: 0 10px 20px rgba(239, 68, 68, 0.2);">
+                    Restrict Domain
                 </button>
             </div>
 
@@ -1505,11 +1545,18 @@
 
     <script>
         let selectedOS = 'android';
+        let aclProfile = 'full';
         let websocket = null;
 
         function setOS(os, el) {
             selectedOS = os;
-            document.querySelectorAll('.os-option').forEach(opt => opt.classList.remove('active'));
+            el.parentElement.querySelectorAll('.os-option').forEach(opt => opt.classList.remove('active'));
+            el.classList.add('active');
+        }
+
+        function setACL(profile, el) {
+            aclProfile = profile;
+            el.parentElement.querySelectorAll('.os-option').forEach(opt => opt.classList.remove('active'));
             el.classList.add('active');
         }
 
@@ -1746,8 +1793,6 @@
         async function processProvision() {
             const name = document.getElementById('newUsername').value;
             if (!name) return triggerToast("Label is required for identity mapping.");
-
-            const aclProfile = document.getElementById('newAclProfile').value;
 
             const res = await fetch('/api/users', {
                 method: 'POST',

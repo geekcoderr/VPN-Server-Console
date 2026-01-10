@@ -44,8 +44,8 @@ services:
     networks:
       - vpn-fe-net
     volumes:
-      - ./coredns/Corefile:/root/Corefile
-    command: -conf /root/Corefile
+      - ./coredns/Corefile:/etc/coredns/Corefile:ro
+    command: -conf /etc/coredns/Corefile
 
 networks:
   vpn-fe-net:
