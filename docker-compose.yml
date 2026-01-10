@@ -10,8 +10,8 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      # Mount Let's Encrypt certs
-      - /etc/letsencrypt/live/vpn.nishantmaheshwari.online:/etc/nginx/certs-letsencrypt:ro
+      # Mount Let's Encrypt certs (entire dir to preserve symlinks)
+      - /etc/letsencrypt:/etc/letsencrypt:ro
       # ACME challenge
       - ./nginx/html:/var/www/html
       # Static Frontend Files

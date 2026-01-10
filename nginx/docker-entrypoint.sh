@@ -2,12 +2,13 @@
 set -e
 
 # Check if real SSL certs exist (mounted from host)
-if [ -f "/etc/nginx/certs-letsencrypt/fullchain.pem" ]; then
-    echo "✅ Using Let's Encrypt certificates"
-    cp /etc/nginx/certs-letsencrypt/fullchain.pem /etc/nginx/certs/fullchain.pem
-    cp /etc/nginx/certs-letsencrypt/privkey.pem /etc/nginx/certs/privkey.pem
+DOMAIN="vpn.nishantmaheshwari.online"
+if [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
+    echo "✅ Using Let's Encypt certificates for $DOMAIN"
+    cp /etc/letsencrypt/live/$DOMAIN/fullchain.pem /etc/nginx/certs/fullchain.pem
+    cp /etc/letsencrypt/live/$DOMAIN/privkey.pem /etc/nginx/certs/privkey.pem
 else
-    echo "⚠️  No Let's Encrypt certs found, using self-signed"
+    echo "⚠️  No Let's Encrypt certs found for $DOMAIN, using self-signed"
 fi
 
 # ALWAYS use the SSL config (it has IP blocking + security)
