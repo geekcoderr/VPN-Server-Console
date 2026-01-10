@@ -118,23 +118,27 @@ async def get_me(admin: str = Depends(get_current_admin)):
     }
 
 
-@router.post("/change-password")
+from pydantic import BaseModel
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+@router.put("/password")
 async def change_password(
-    request: Request,
-    current_password: str = Form(...),
-    new_password: str = Form(...),
+    request: PasswordChangeRequest,
     admin: str = Depends(get_current_admin)
 ):
     """Change admin password."""
     admin_data = await get_admin()
     
-    if not verify_password(current_password, admin_data['password_hash']):
+    if not verify_password(request.current_password, admin_data['password_hash']):
         raise HTTPException(status_code=400, detail="Current password is incorrect")
     
-    if len(new_password) < 8:
+    if len(request.new_password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
     
-    new_hash = hash_password(new_password)
+    new_hash = hash_password(request.new_password)
     await create_admin(admin, new_hash)
     
     return {"message": "Password changed successfully"}
@@ -146,17 +150,19 @@ async def setup_2fa(admin: str = Depends(get_current_admin)):
     qr = generate_qr_data_uri(uri)
     return {"secret": secret, "qr_code": qr}
 
+class TOTPVerifyRequest(BaseModel):
+    secret: str
+    code: str
+
 @router.post("/2fa/verify")
 async def verify_2fa_setup(
-    request: Request,
-    secret: str = Form(...),
-    code: str = Form(...),
+    request: TOTPVerifyRequest,
     admin: str = Depends(get_current_admin)
 ):
-    if verify_totp(secret, code):
+    if verify_totp(request.secret, request.code):
         # Save to DB
         async with AsyncSessionLocal() as session:
-            await session.execute(update(Admin).where(Admin.username == admin).values(totp_secret=secret))
+            await session.execute(update(Admin).where(Admin.username == admin).values(totp_secret=request.secret))
             await session.commit()
         return {"status": "enabled"}
     raise HTTPException(status_code=400, detail="Invalid code")

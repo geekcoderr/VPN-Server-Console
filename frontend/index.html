@@ -1751,10 +1751,7 @@
 
             const res = await fetch('/api/users', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     username: name,
                     client_os: selectedOS,
@@ -1919,13 +1916,14 @@
         init();
 
         /** 2FA & SETTINGS **/
+        let tfaSecret = null;
         async function setup2FA() {
             const res = await fetch('/auth/2fa/setup', {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('admin_token')}` }
+                method: 'POST'
             });
             const data = await res.json();
             if (data.qr_code) {
+                tfaSecret = data.secret;
                 document.getElementById('2fa-qr').innerHTML = `<img src="${data.qr_code}" style="width:100%">`;
                 document.getElementById('2fa-setup-area').style.display = 'block';
                 document.getElementById('btn-setup-2fa').style.display = 'none';
@@ -1937,10 +1935,9 @@
             const res = await fetch('/auth/2fa/verify', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ code })
+                body: JSON.stringify({ secret: tfaSecret, code })
             });
             if (res.ok) {
                 triggerToast("2FA Enabled Successfully");
@@ -1956,8 +1953,7 @@
             const res = await fetch('/auth/password', {
                 method: 'PUT',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ current_password, new_password })
             });
@@ -1972,9 +1968,7 @@
 
         /** BLACKLIST MANAGEMENT **/
         async function fetchBlacklist() {
-            const res = await fetch('/api/alerts/blacklist', {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('admin_token')}` }
-            });
+            const res = await fetch('/api/alerts/blacklist');
             const domains = await res.json();
             const tbody = document.getElementById('blacklistTableBody');
             tbody.innerHTML = domains.map(d => `
@@ -1995,8 +1989,7 @@
             await fetch('/api/alerts/blacklist', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ domain })
             });
@@ -2006,8 +1999,7 @@
 
         async function deleteBlacklist(domain) {
             await fetch(`/api/alerts/blacklist/${domain}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('admin_token')}` }
+                method: 'DELETE'
             });
             fetchBlacklist();
         }
@@ -2040,9 +2032,7 @@
 
         async function fetchSessions() {
             const username = document.getElementById('detailUsername').innerText;
-            const res = await fetch(`/api/users/${username}/sessions`, {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('admin_token')}` }
-            });
+            const res = await fetch(`/api/users/${username}/sessions`);
             const data = await res.json();
             const tbody = document.getElementById('sessionTableBody');
             tbody.innerHTML = data.sessions.map(s => `
