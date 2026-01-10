@@ -208,9 +208,9 @@ async def list_users(admin: str = Depends(get_current_admin)):
             user['last_endpoint'] = live_endpoint
         
         # Merge transfer stats (WireGuard vs Historical)
-        if peer_info.get('transfer_rx', 0) > 0:
-            user['transfer_rx'] = peer_info.get('transfer_rx')
-            user['transfer_tx'] = peer_info.get('transfer_tx')
+        # Merge transfer stats (Historical + Current Session)
+        user['transfer_rx'] = (user_orm.total_rx or 0) + peer_info.get('transfer_rx', 0)
+        user['transfer_tx'] = (user_orm.total_tx or 0) + peer_info.get('transfer_tx', 0)
         
         # Update Handshake/Login time
         h_time = peer_info.get('latest_handshake')

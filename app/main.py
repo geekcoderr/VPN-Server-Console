@@ -50,34 +50,10 @@ async def lifespan(app: FastAPI):
     app.state.broadcast_task.cancel()
     app.state.alert_worker_task.cancel()
 
-async def persist_to_db(metrics: dict):
-    """Auxiliary task to persist metrics to DB without blocking the broadcast loop."""
-    from .database import AsyncSessionLocal, User
-    from sqlalchemy import update
-    try:
-        async with AsyncSessionLocal() as db:
-            for pubkey, stats in metrics.items():
-                # Only update if there's actual data
-                rx = stats.get('transfer_rx', 0)
-                tx = stats.get('transfer_tx', 0)
-                
-                if rx == 0 and tx == 0:
-                    continue
-                
-                # INCREMENT cumulative counters (not replace)
-                await db.execute(
-                    update(User)
-                    .where(User.public_key == pubkey)
-                    .values(
-                        total_rx=User.total_rx + rx,
-                        total_tx=User.total_tx + tx,
-                        last_login=datetime.fromtimestamp(stats['latest_handshake']) if stats.get('latest_handshake') else None,
-                        last_endpoint=stats.get('endpoint')
-                    )
-                )
-            await db.commit()
-    except Exception as e:
-        print(f"Database Persistence Error: {e}")
+async def persist_to_db(connected_peers: dict):
+    """Consolidated stats persistence."""
+    from .stats import sync_stats_to_db
+    await sync_stats_to_db()
 
 async def broadcast_metrics():
     """
@@ -102,8 +78,21 @@ async def broadcast_metrics():
             # Force fresh poll to get latest handshake IMMEDIATELY
             connected = await get_connected_peers(use_cache=False)
             
+            # Enrich with DB totals for cumulative display
+            from .database import get_all_users
+            all_users = await get_all_users()
+            enriched_data = {}
+            for user in all_users:
+                peer_info = connected.get(user.public_key, {})
+                enriched_data[user.public_key] = {
+                    **peer_info,
+                    "transfer_rx": (user.total_rx or 0) + peer_info.get("transfer_rx", 0),
+                    "transfer_tx": (user.total_tx or 0) + peer_info.get("transfer_tx", 0),
+                    "connected": peer_info.get("connected", False)
+                }
+
             # Broadcast to WebSocket (Priority)
-            await manager.broadcast({"type": "metrics", "data": connected})
+            await manager.broadcast({"type": "metrics", "data": enriched_data})
             
             # 2. SLOW LOOP (20s): Persist to Database
             # Only write to disk occasionally to save resources
@@ -120,7 +109,7 @@ async def broadcast_metrics():
 
 app = FastAPI(
     title="VPN Control API",
-    version="3.3.0",
+    version="3.3.1",
     lifespan=lifespan
 )
 
