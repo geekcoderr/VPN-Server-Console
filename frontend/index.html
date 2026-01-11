@@ -2081,10 +2081,18 @@
                 document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
                 event.target.closest('.nav-item').classList.add('active');
 
-                // Auto-collapse sidebar on desktop (ChatGPT style)
+                // Auto-toggle sidebar on desktop (ChatGPT style)
                 if (window.innerWidth > 1200) {
-                    document.getElementById('sidebar').classList.add('collapsed');
-                    document.querySelector('.main-wrapper').classList.add('expanded');
+                    const sidebar = document.getElementById('sidebar');
+                    const wrapper = document.querySelector('.main-wrapper');
+
+                    if (sidebar.classList.contains('collapsed')) {
+                        sidebar.classList.remove('collapsed');
+                        wrapper.classList.remove('expanded');
+                    } else {
+                        sidebar.classList.add('collapsed');
+                        wrapper.classList.add('expanded');
+                    }
                 }
             }
         }
