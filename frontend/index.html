@@ -1436,8 +1436,7 @@
             <div class="sidebar-header">
                 <div class="brand">
                     <div class="logo-box">
-                        <img src="geek_avatar.png" alt="GeekSTunnel"
-                            style="width: 40px; height: 40px; border-radius: 12px; object-fit: cover;">
+                        <img src="logo.svg" alt="GeekSTunnel" style="width: 40px; height: 40px; border-radius: 8px;">
                     </div>
                     <div>
                         <h1>GeekSTunnel</h1>
@@ -1695,7 +1694,7 @@
                 </div>
                 <div class="footer"
                     style="text-align: center; color: var(--text-dim); font-size: 12px; padding: 60px 0; opacity: 0.5; font-family: 'Inter', sans-serif;">
-                    GeekSTunnel v4.0.0 &copy; 2026 | Premium Console
+                    GeekSTunnel v4.3.6 &copy; 2026 | Premium Console
                 </div>
             </div>
         </main>
@@ -2200,9 +2199,79 @@
         <div id="toast"></div>
 
         <script>
+            /** CORE NAVIGATION (Defined first for reliability) **/
+            function showModal(id, event) {
+                console.log("Opening Modal:", id);
+                if (event && event.preventDefault) event.preventDefault();
+                const modal = document.getElementById(id);
+                if (!modal) {
+                    console.error("Modal not found:", id);
+                    return;
+                }
+
+                // Update active state
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                if (event) {
+                    const target = event.currentTarget || (event.target && event.target.closest('.nav-item'));
+                    if (target) target.classList.add('active');
+                }
+
+                modal.style.display = 'flex';
+                setTimeout(() => modal.classList.add('show'), 10);
+
+                // Close sidebar on mobile
+                if (window.innerWidth <= 1200) {
+                    const sidebar = document.getElementById('sidebar');
+                    const overlay = document.getElementById('sidebar-overlay');
+                    if (sidebar) sidebar.classList.remove('open');
+                    if (overlay) overlay.classList.remove('show');
+                }
+            }
+
+            function closeModal(id) {
+                console.log("Closing Modal:", id);
+                const modal = document.getElementById(id);
+                if (!modal) return;
+                modal.classList.remove('show');
+                setTimeout(() => {
+                    if (!modal.classList.contains('show')) modal.style.display = 'none';
+                }, 300);
+            }
+
+            function showSection(section, event) {
+                console.log("Showing Section:", section);
+                if (event && event.preventDefault) event.preventDefault();
+
+                // Close sidebar on mobile
+                if (window.innerWidth <= 1200) {
+                    const sidebar = document.getElementById('sidebar');
+                    const overlay = document.getElementById('sidebar-overlay');
+                    if (sidebar) sidebar.classList.remove('open');
+                    if (overlay) overlay.classList.remove('show');
+                }
+
+                if (section === 'dashboard') {
+                    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                    if (event) {
+                        const target = event.currentTarget || (event.target && event.target.closest('.nav-item'));
+                        if (target) target.classList.add('active');
+                    }
+
+                    // Auto-toggle sidebar on desktop
+                    if (window.innerWidth > 1200) {
+                        const sidebar = document.getElementById('sidebar');
+                        const wrapper = document.querySelector('.main-wrapper');
+                        if (sidebar) {
+                            sidebar.classList.toggle('collapsed');
+                            if (wrapper) wrapper.classList.toggle('expanded');
+                        }
+                    }
+                }
+            }
+
+            let websocket = null;
             let selectedOS = 'android';
             let aclProfile = 'full';
-            let websocket = null;
             let allUsers = []; // Global store for searching
 
             function toggleSidebar() {
@@ -2222,39 +2291,6 @@
                 }
             }
 
-            function showSection(section, event) {
-                if (event && event.preventDefault) event.preventDefault();
-
-                // Close sidebar on mobile for any nav click
-                if (window.innerWidth <= 1200) {
-                    const sidebar = document.getElementById('sidebar');
-                    const overlay = document.getElementById('sidebar-overlay');
-                    if (sidebar) sidebar.classList.remove('open');
-                    if (overlay) overlay.classList.remove('show');
-                }
-
-                if (section === 'dashboard') {
-                    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-
-                    // Simple active state update
-                    if (event && event.currentTarget) {
-                        event.currentTarget.classList.add('active');
-                    } else if (event && event.target) {
-                        const target = event.target.closest('.nav-item');
-                        if (target) target.classList.add('active');
-                    }
-
-                    // Auto-toggle sidebar on desktop
-                    if (window.innerWidth > 1200) {
-                        const sidebar = document.getElementById('sidebar');
-                        const wrapper = document.querySelector('.main-wrapper');
-                        if (sidebar) {
-                            sidebar.classList.toggle('collapsed');
-                            if (wrapper) wrapper.classList.toggle('expanded');
-                        }
-                    }
-                }
-            }
 
             function handleSearch() {
                 const query = document.getElementById('tableSearch').value.toLowerCase();
@@ -2678,39 +2714,6 @@
 
             function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
             function logout() { fetch('/auth/logout', { method: 'POST' }).then(() => window.location.href = "/login.html"); }
-            function showModal(id, event) {
-                if (event && event.preventDefault) event.preventDefault();
-                const modal = document.getElementById(id);
-                if (!modal) return;
-
-                // Update active state
-                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-                if (event && event.currentTarget) {
-                    event.currentTarget.classList.add('active');
-                } else if (event && event.target) {
-                    const target = event.target.closest('.nav-item');
-                    if (target) target.classList.add('active');
-                }
-
-                modal.style.display = 'flex';
-                setTimeout(() => modal.classList.add('show'), 10);
-
-                // Close sidebar on mobile
-                if (window.innerWidth <= 1200) {
-                    const sidebar = document.getElementById('sidebar');
-                    const overlay = document.getElementById('sidebar-overlay');
-                    if (sidebar) sidebar.classList.remove('open');
-                    if (overlay) overlay.classList.remove('show');
-                }
-            }
-            function closeModal(id) {
-                const modal = document.getElementById(id);
-                if (!modal) return;
-                modal.classList.remove('show');
-                setTimeout(() => {
-                    if (!modal.classList.contains('show')) modal.style.display = 'none';
-                }, 300);
-            }
             function downloadConfig() {
                 const raw = document.getElementById('provisionRaw').innerText;
                 const blob = new Blob([raw], { type: 'text/plain' });
