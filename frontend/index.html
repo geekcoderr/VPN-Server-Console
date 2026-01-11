@@ -1394,7 +1394,21 @@
                     </svg>
                     <span>Settings & MFA</span>
                 </a>
-                <div style="margin-top: auto; padding-top: 24px; border-top: 1px solid var(--glass-border);">
+                <div class="sidebar-footer"
+                    style="margin-top: auto; padding-top: 24px; border-top: 1px solid var(--glass-border);">
+                    <div class="user-info"
+                        style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding: 0 12px;">
+                        <div class="user-avatar" onclick="document.getElementById('avatarInput').click()"
+                            style="cursor: pointer; overflow: hidden; padding: 0; width: 40px; height: 40px; min-width: 40px; border-radius: 12px;">
+                            <img id="adminAvatar" src="default_avatar.jpg"
+                                style="width: 100%; height: 100%; object-fit: cover;">
+                            <input type="file" id="avatarInput" hidden accept="image/*" onchange="updateAvatar(this)">
+                        </div>
+                        <div class="user-details">
+                            <div class="user-name" style="font-weight: 600; color: white;">geek</div>
+                            <div class="user-role" style="font-size: 11px; color: var(--text-dim);">Primary Admin</div>
+                        </div>
+                    </div>
                     <a href="#" class="nav-item" onclick="logout()" style="color: var(--error);">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -2776,6 +2790,20 @@
                 tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--error); padding: 40px;">Error loading sessions: ' + err.message + '</td></tr>';
             }
         }
+        function updateAvatar(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    document.getElementById('adminAvatar').src = e.target.result;
+                    localStorage.setItem('adminAvatar', e.target.result);
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // Restore avatar on load
+        const savedAvatar = localStorage.getItem('adminAvatar');
+        if (savedAvatar) document.getElementById('adminAvatar').src = savedAvatar;
     </script>
 </body>
 
