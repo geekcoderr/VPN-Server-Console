@@ -50,7 +50,7 @@ If you are already running an older version, follow these steps to upgrade:
 
 ```bash
 cd /opt/vpn-control
-git pull origin main
+sudo git pull origin main
 
 # 1. Install new security dependencies
 sudo ./venv/bin/pip install -r requirements.txt
