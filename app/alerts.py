@@ -15,7 +15,7 @@ async def get_redis():
 
 async def get_redis_blacklist():
     r = await get_redis()
-    return await r.smembers("vpn_blacklist")
+    return await r.smembers("blacklist")
 
 async def sync_blacklist_to_dns():
     """Sync Redis blacklist to CoreDNS configuration using template plugin."""
@@ -47,14 +47,14 @@ async def sync_blacklist_to_dns():
 @router.get("/blacklist")
 async def get_blacklist(admin: str = Depends(get_current_admin)):
     r = await get_redis()
-    domains = await r.smembers("vpn_blacklist")
+    domains = await r.smembers("blacklist")
     return {"domains": list(domains)}
 
 @router.post("/blacklist")
 async def add_to_blacklist(domain: str = Form(...), admin: str = Depends(get_current_admin)):
     """Add a domain to the blacklist."""
     r = await get_redis()
-    await r.sadd("vpn_blacklist", domain)
+    await r.sadd("blacklist", domain)
     await sync_blacklist_to_dns()
     return {"message": f"Domain {domain} restricted"}
 
@@ -62,6 +62,6 @@ async def add_to_blacklist(domain: str = Form(...), admin: str = Depends(get_cur
 async def remove_from_blacklist(domain: str, admin: str = Depends(get_current_admin)):
     """Remove a domain from the blacklist."""
     r = await get_redis()
-    await r.srem("vpn_blacklist", domain)
+    await r.srem("blacklist", domain)
     await sync_blacklist_to_dns()
     return {"message": f"Domain {domain} removed from restriction"}
