@@ -1,5 +1,9 @@
 . {
     reload
+    # Block HTTPS (65) and SVCB (64) records to prevent modern browser bypasses (DoH/ECH)
+    template ANY HTTPS SVCB {
+        rcode NXDOMAIN
+    }
     hosts /etc/coredns/blocked.hosts {
         fallthrough
     }
