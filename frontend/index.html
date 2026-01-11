@@ -818,7 +818,10 @@
         /* PREMIUM MODAL OVERHAUL */
         .overlay {
             position: fixed;
-            inset: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             background: rgba(0, 0, 0, 0.9);
             backdrop-filter: blur(25px);
             display: none;
@@ -1433,7 +1436,7 @@
             <div class="sidebar-header">
                 <div class="brand">
                     <div class="logo-box">
-                        <img src="logo.png" alt="GeekSTunnel" style="width: 40px; height: 40px; border-radius: 8px;">
+                        <img src="logo.svg" alt="GeekSTunnel" style="width: 40px; height: 40px; border-radius: 8px;">
                     </div>
                     <div>
                         <h1>GeekSTunnel</h1>
@@ -2219,6 +2222,9 @@
             }
 
             function showSection(section, event) {
+                const e = event || window.event;
+                if (e && e.preventDefault) e.preventDefault();
+
                 // Close sidebar on mobile for any nav click
                 if (window.innerWidth <= 1200) {
                     const sidebar = document.getElementById('sidebar');
@@ -2231,9 +2237,8 @@
                     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
 
                     // Robust event target detection
-                    const e = event || window.event;
                     if (e) {
-                        const target = e.target.closest('.nav-item') || e.currentTarget;
+                        const target = (e.target && e.target.closest) ? e.target.closest('.nav-item') : (e.currentTarget || null);
                         if (target) target.classList.add('active');
                     }
 
@@ -2675,15 +2680,23 @@
             function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
             function logout() { fetch('/auth/logout', { method: 'POST' }).then(() => window.location.href = "/login.html"); }
             function showModal(id, event) {
+                const e = event || window.event;
+                if (e && e.preventDefault) e.preventDefault();
+
                 const modal = document.getElementById(id);
-                if (!modal) return;
-                modal.classList.add('show');
+                if (!modal) {
+                    console.error("Modal not found:", id);
+                    return;
+                }
+
+                // Force display flex before adding show class if needed
+                modal.style.display = 'flex';
+                setTimeout(() => modal.classList.add('show'), 10);
 
                 // Update active state in sidebar if event is provided
-                const e = event || window.event;
                 if (e) {
                     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-                    const target = e.target.closest('.nav-item') || e.currentTarget;
+                    const target = (e.target && e.target.closest) ? e.target.closest('.nav-item') : (e.currentTarget || null);
                     if (target) target.classList.add('active');
                 }
 
@@ -2695,7 +2708,14 @@
                     if (overlay) overlay.classList.remove('show');
                 }
             }
-            function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+            function closeModal(id) {
+                const modal = document.getElementById(id);
+                if (!modal) return;
+                modal.classList.remove('show');
+                setTimeout(() => {
+                    if (!modal.classList.contains('show')) modal.style.display = 'none';
+                }, 300);
+            }
             function downloadConfig() {
                 const raw = document.getElementById('provisionRaw').innerText;
                 const blob = new Blob([raw], { type: 'text/plain' });
