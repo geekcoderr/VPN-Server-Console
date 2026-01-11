@@ -1,13 +1,9 @@
 . {
-    reload
-    # Import dynamically generated blacklist rules
-    import /etc/coredns/blocked.conf
-
-    # Block HTTPS (65) and SVCB (64) records globally to prevent modern browser bypasses
-    template ANY HTTPS SVCB {
-        rcode NXDOMAIN
+    # Reload hosts file every 5 seconds to pick up changes
+    hosts /etc/coredns/blocked.hosts {
+        fallthrough
+        reload 5s
     }
-
     forward . 8.8.8.8 1.1.1.1
     log
     errors
