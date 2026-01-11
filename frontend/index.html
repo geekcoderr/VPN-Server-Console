@@ -1149,11 +1149,31 @@
         @media (min-width: 1201px) {
             .sidebar {
                 transform: translateX(0);
-                transition: transform 0.3s ease, width 0.3s ease;
+                transition: width 0.3s ease;
+                width: 280px;
             }
 
             .sidebar.collapsed {
-                transform: translateX(-100%);
+                width: 80px;
+            }
+
+            .sidebar.collapsed span,
+            .sidebar.collapsed .brand-sub,
+            .sidebar.collapsed h1 {
+                display: none;
+            }
+
+            .sidebar.collapsed .logo-box {
+                margin: 0 auto;
+            }
+
+            .sidebar.collapsed .nav-item {
+                justify-content: center;
+                padding: 12px;
+            }
+
+            .sidebar.collapsed .nav-item svg {
+                margin-right: 0;
             }
 
             .main-wrapper {
@@ -1162,12 +1182,24 @@
             }
 
             .main-wrapper.expanded {
-                margin-left: 0;
+                margin-left: 80px;
             }
 
-            /* Show menu toggle on desktop too */
+            /* Show toggle button in sidebar on desktop */
+            .sidebar-close-btn {
+                display: block;
+                transform: rotate(0deg);
+                transition: transform 0.3s;
+            }
+
+            .sidebar.collapsed .sidebar-close-btn {
+                transform: rotate(180deg);
+                margin: 0 auto;
+            }
+
+            /* Hide top navbar menu toggle on desktop */
             .menu-toggle {
-                display: flex !important;
+                display: none !important;
             }
         }
 
@@ -1334,8 +1366,7 @@
                 </div>
                 <button class="sidebar-close-btn" onclick="toggleSidebar()">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6" y1="6" x2="18" y2="18" />
+                        <polyline points="15 18 9 12 15 6"></polyline>
                     </svg>
                 </button>
             </div>
@@ -1347,13 +1378,13 @@
                         <rect x="14" y="14" width="7" height="7" />
                         <rect x="3" y="14" width="7" height="7" />
                     </svg>
-                    Dashboard
+                    <span>Dashboard</span>
                 </a>
                 <a href="#" class="nav-item" onclick="showModal('alertsModal'); fetchBlacklist();">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                     </svg>
-                    Restricted Domains
+                    <span>Restricted Domains</span>
                 </a>
                 <a href="#" class="nav-item" onclick="showModal('settingsModal')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1361,7 +1392,7 @@
                         <path
                             d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
                     </svg>
-                    Settings & MFA
+                    <span>Settings & MFA</span>
                 </a>
                 <div style="margin-top: auto; padding-top: 24px; border-top: 1px solid var(--glass-border);">
                     <a href="#" class="nav-item" onclick="logout()" style="color: var(--error);">
@@ -1370,7 +1401,7 @@
                             <polyline points="16 17 21 12 16 7" />
                             <line x1="21" y1="12" x2="9" y2="12" />
                         </svg>
-                        Terminate Session
+                        <span>Terminate Session</span>
                     </a>
                 </div>
             </nav>
