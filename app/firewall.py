@@ -72,68 +72,51 @@ def init_firewall_chains():
         run_iptables(mss_rule)
         print("🛡️  MSS Clamping enabled to prevent MTU-related website hangs.")
 
-    # 3. DNS Enforcement (Hijacking)
-    # Intercept port 53 traffic from VPN interface and redirect to internal CoreDNS
-    # We use the 'nat' table PREROUTING chain
+    # 3. DNS Enforcement (Military-Grade Hijacking)
+    # Force ALL port 53 traffic from VPN interface to our internal CoreDNS
     for proto in ["udp", "tcp"]:
-        dnat_rule = ["-t", "nat", "-A", "PREROUTING", "-i", WG_INTERFACE, "-p", proto, "--dport", "53", "-j", "DNAT", "--to-destination", f"{VPN_SERVER_IP}:53"]
-        check_rule = ["-t", "nat", "-C", "PREROUTING", "-i", WG_INTERFACE, "-p", proto, "--dport", "53", "-j", "DNAT", "--to-destination", f"{VPN_SERVER_IP}:53"]
+        # Use -I 1 to ensure it's the absolute first rule in PREROUTING
+        dnat_rule = ["-t", "nat", "-I", "PREROUTING", "1", "-i", WG_INTERFACE, "-p", proto, "--dport", "53", "-j", "DNAT", "--to-destination", f"{VPN_SERVER_IP}:53"]
+        run_iptables(dnat_rule)
         
-        if not run_iptables(check_rule):
-            run_iptables(dnat_rule)
-            print(f"🛡️  DNS Hijacking enabled for {proto} (forced to {VPN_SERVER_IP})")
+        # 3b. Allow DNS traffic in INPUT chain (since it's now destined for the server itself)
+        # Use -I 1 to ensure it's not blocked by other INPUT rules
+        input_rule = ["-I", "INPUT", "1", "-i", WG_INTERFACE, "-p", proto, "--dport", "53", "-d", VPN_SERVER_IP, "-j", "ACCEPT"]
+        run_iptables(input_rule)
 
-    # 3b. Explicitly ALLOW DNS traffic to the VPN Server IP in the FORWARD chain
-    # This ensures that even restricted profiles can resolve DNS
+    # 3c. Block ANY DNS traffic in FORWARD chain that escaped hijacking
+    # This is the fail-safe: if someone tries to use 8.8.8.8 and DNAT somehow fails, we DROP it.
     for proto in ["udp", "tcp"]:
-        run_iptables(["-I", "FORWARD", "1", "-i", WG_INTERFACE, "-p", proto, "--dport", "53", "-d", VPN_SERVER_IP, "-j", "ACCEPT"])
+        run_iptables(["-I", "FORWARD", "1", "-i", WG_INTERFACE, "-p", proto, "--dport", "53", "-j", "REJECT"])
 
     # 4. Block DNS-over-TLS (DoT) - Port 853
     # This forces devices to fall back to standard DNS (port 53) which we hijack
-    dot_rule = ["-A", "VPN_ACL", "-i", WG_INTERFACE, "-p", "tcp", "--dport", "853", "-j", "DROP"]
-    if not run_iptables(["-C", "VPN_ACL", "-i", WG_INTERFACE, "-p", "tcp", "--dport", "853", "-j", "DROP"]):
-        run_iptables(dot_rule)
-        print("🛡️  DNS-over-TLS (Port 853) blocked to prevent bypass.")
+    dot_rule = ["-I", "FORWARD", "1", "-i", WG_INTERFACE, "-p", "tcp", "--dport", "853", "-j", "REJECT"]
+    run_iptables(dot_rule)
 
     # 5. Block IPv6 DNS (Leaks)
-    # We don't support IPv6 DNS filtering yet, so we block it to force IPv4 fallback
     for proto in ["udp", "tcp"]:
-        run_ip6tables(["-A", "FORWARD", "-i", WG_INTERFACE, "-p", proto, "--dport", "53", "-j", "DROP"])
+        run_ip6tables(["-I", "FORWARD", "1", "-i", WG_INTERFACE, "-p", proto, "--dport", "53", "-j", "DROP"])
 
 def apply_acl(ip: str, profile: str):
     """
     Apply ACL rules for a specific User IP.
-    
-    Logic:
-    1. Clear existing rules for this IP in VPN_ACL chain.
-    2. Add new rules based on profile.
     """
     from .config import VPN_SERVER_IP
     # 1. Cleanup existing rules for this IP
-    # Note: iptables doesn't have a "delete all for IP" command easily.
-    # We will just append new rules. Ideally, we should flush the chain and rebuild all,
-    # but for now, we'll assume the caller handles state or we rely on the fact that
-    # we are adding specific ACCEPT/DROP rules.
-    
-    # BETTER APPROACH: Delete specific rules for this IP first
-    # This is tricky without a complex manager. 
-    # For MVP: We will assume this function is called on startup/update.
-    # To be safe, we try to delete potential existing rules for this IP.
     remove_acl(ip)
 
     if profile == PROFILE_FULL:
-        # Full Access: Default is usually ACCEPT in FORWARD if not blocked.
-        # But if we have a default DROP policy, we need to ACCEPT.
-        # For now, we assume default FORWARD is ACCEPT or handled by other rules.
-        # We explicitly ACCEPT everything for this IP to be safe.
+        # Full Access: Explicitly ACCEPT everything for this IP
         run_iptables(["-A", "VPN_ACL", "-s", ip, "-j", "ACCEPT"])
 
     elif profile == PROFILE_INTERNET_ONLY:
-        # Internet Only: Block access to Private Networks (LAN) but allow VPN server IP for DNS
-        # IMPORTANT: Allow VPN server IP FIRST (for DNS resolution)
-        run_iptables(["-A", "VPN_ACL", "-s", ip, "-d", VPN_SERVER_IP, "-j", "ACCEPT"])
-        # Block private networks (except VPN server which was already allowed above)
+        # Internet Only: Block access to Private Networks (LAN)
+        # We don't need to allow VPN_SERVER_IP here because DNS is handled in INPUT chain
         for net in PRIVATE_NETWORKS:
+            # Exception: Allow traffic to the VPN server IP itself (for dashboard/API if needed)
+            # But block the rest of the private range
+            run_iptables(["-A", "VPN_ACL", "-s", ip, "-d", VPN_SERVER_IP, "-j", "ACCEPT"])
             run_iptables(["-A", "VPN_ACL", "-s", ip, "-d", net, "-j", "DROP"])
         # Allow everything else (Internet)
         run_iptables(["-A", "VPN_ACL", "-s", ip, "-j", "ACCEPT"])
@@ -147,17 +130,11 @@ def apply_acl(ip: str, profile: str):
 
 def remove_acl(ip: str):
     """Remove all ACL rules for a specific IP."""
-    # We need to find and delete rules. 
-    # Since we can't easily query, we blindly try to delete the rules we MIGHT have added.
-    # This is brute-force but works for the 3 profiles we have.
-    
-    # 1. Delete ACCEPT all
-    run_iptables(["-D", "VPN_ACL", "-s", ip, "-j", "ACCEPT"])
-    
-    # 2. Delete DROP all
-    run_iptables(["-D", "VPN_ACL", "-s", ip, "-j", "DROP"])
-    
-    # 3. Delete Private Network rules (DROP/ACCEPT)
+    # Delete all rules matching this source IP in the VPN_ACL chain
+    # We use a loop because -D only deletes one instance
+    while run_iptables(["-D", "VPN_ACL", "-s", ip, "-j", "ACCEPT"]): pass
+    while run_iptables(["-D", "VPN_ACL", "-s", ip, "-j", "DROP"]): pass
+    while run_iptables(["-D", "VPN_ACL", "-s", ip, "-j", "REJECT"]): pass
     for net in PRIVATE_NETWORKS:
-        run_iptables(["-D", "VPN_ACL", "-s", ip, "-d", net, "-j", "DROP"])
-        run_iptables(["-D", "VPN_ACL", "-s", ip, "-d", net, "-j", "ACCEPT"])
+        while run_iptables(["-D", "VPN_ACL", "-s", ip, "-d", net, "-j", "DROP"]): pass
+        while run_iptables(["-D", "VPN_ACL", "-s", ip, "-d", net, "-j", "ACCEPT"]): pass
