@@ -1460,7 +1460,7 @@
                 <div class="user-nav">
                     <div class="user-info" style="display: flex; align-items: center; gap: 12px;">
                         <div class="user-details" style="text-align: right;">
-                            <div class="user-name" style="font-weight: 600; color: white;">geek</div>
+                            <div id="adminName" class="user-name" style="font-weight: 600; color: white;">geek</div>
                             <div class="user-role" style="font-size: 11px; color: var(--text-dim);">Primary Admin</div>
                         </div>
                         <div class="user-avatar" onclick="toggleAvatarMenu()"
@@ -2131,7 +2131,7 @@
                 const res = await fetch('/auth/me');
                 if (!res.ok) { window.location.href = "/login.html"; return; }
                 const data = await res.json();
-                document.getElementById('adminName').innerText = `Primary Admin: ${data.username}`;
+                document.getElementById('adminName').innerText = data.username;
                 update2FAUI(data['2fa_enabled']);
 
                 await loadNodes();
