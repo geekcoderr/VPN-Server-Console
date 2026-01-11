@@ -61,10 +61,16 @@ def init_firewall_chains():
         run_iptables(["-I", "FORWARD", "1", "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT"])
 
     # 2c. Enable NAT (Masquerade) for Internet Access
-    # We assume the default interface is eth0 or similar. We use a generic rule.
-    run_iptables(["-t", "nat", "-A", "POSTROUTING", "-s", "10.50.0.0/24", "-o", "eth0", "-j", "MASQUERADE"])
-    # Also try without -o eth0 if eth0 is not the name
-    run_iptables(["-t", "nat", "-A", "POSTROUTING", "-s", "10.50.0.0/24", "-j", "MASQUERADE"])
+    # We use a generic rule for the VPN subnet. This is essential for internet access.
+    if not run_iptables(["-t", "nat", "-C", "POSTROUTING", "-s", "10.50.0.0/24", "-j", "MASQUERADE"]):
+        run_iptables(["-t", "nat", "-A", "POSTROUTING", "-s", "10.50.0.0/24", "-j", "MASQUERADE"])
+
+    # 2d. MSS Clamping (MTU Fix)
+    # This is CRITICAL for WireGuard. It prevents websites from hanging due to MTU issues.
+    mss_rule = ["-t", "mangle", "-A", "FORWARD", "-p", "tcp", "--tcp-flags", "SYN,RST", "SYN", "-j", "TCPMSS", "--clamp-mss-to-pmtu"]
+    if not run_iptables(["-t", "mangle", "-C", "FORWARD", "-p", "tcp", "--tcp-flags", "SYN,RST", "SYN", "-j", "TCPMSS", "--clamp-mss-to-pmtu"]):
+        run_iptables(mss_rule)
+        print("🛡️  MSS Clamping enabled to prevent MTU-related website hangs.")
 
     # 3. DNS Enforcement (Hijacking)
     # Intercept port 53 traffic from VPN interface and redirect to internal CoreDNS
