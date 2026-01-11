@@ -775,7 +775,7 @@
             border: 1px solid var(--glass-border);
             border-radius: 32px;
             width: 100%;
-            max-width: 600px;
+            max-width: 800px;
             max-height: 90vh;
             overflow-y: auto;
             padding: 40px;
@@ -1942,11 +1942,17 @@
         }
 
         function showSection(section) {
-            // Placeholder for multi-page feel
+            // Close sidebar on mobile for any nav click
+            if (window.innerWidth <= 1200) {
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('sidebar-overlay');
+                sidebar.classList.remove('open');
+                overlay.classList.remove('show');
+            }
+
             if (section === 'dashboard') {
                 document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
                 event.target.closest('.nav-item').classList.add('active');
-                if (window.innerWidth <= 1200) toggleSidebar();
             }
         }
 
@@ -2371,7 +2377,16 @@
 
         function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
         function logout() { fetch('/auth/logout', { method: 'POST' }).then(() => window.location.href = "/login.html"); }
-        function showModal(id) { document.getElementById(id).classList.add('show'); }
+        function showModal(id) {
+            document.getElementById(id).classList.add('show');
+            // Close sidebar on mobile
+            if (window.innerWidth <= 1200) {
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('sidebar-overlay');
+                sidebar.classList.remove('open');
+                overlay.classList.remove('show');
+            }
+        }
         function closeModal(id) { document.getElementById(id).classList.remove('show'); }
         function downloadConfig() {
             const raw = document.getElementById('provisionRaw').innerText;
