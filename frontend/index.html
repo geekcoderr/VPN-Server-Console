@@ -556,20 +556,22 @@
 
         th {
             background: rgba(255, 255, 255, 0.02);
-            padding: 24px 20px;
+            padding: 16px 12px;
             text-align: left;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 700;
             border-bottom: 1px solid var(--glass-border);
             color: var(--text-dim);
             text-transform: uppercase;
-            letter-spacing: 1.5px;
+            letter-spacing: 1px;
+            white-space: nowrap;
         }
 
         td {
-            padding: 24px 20px;
+            padding: 16px 12px;
             border-bottom: 1px solid var(--glass-border);
             vertical-align: middle;
+            font-size: 13px;
         }
 
         tr:hover td {
@@ -586,7 +588,7 @@
         .node-name {
             font-weight: 700;
             color: #fff;
-            font-size: 16px;
+            font-size: 14px;
             letter-spacing: -0.3px;
         }
 
@@ -715,13 +717,15 @@
         /* Modern Action Buttons */
         .action-tray {
             display: flex;
-            gap: 12px;
+            gap: 8px;
             align-items: center;
+            flex-wrap: nowrap;
         }
 
         .action-btn {
-            height: 42px;
-            border-radius: 12px;
+            height: 34px;
+            padding: 0 12px;
+            border-radius: 10px;
             background: var(--glass-hover);
             border: 1px solid var(--glass-border);
             color: var(--text-main);
@@ -731,7 +735,8 @@
             cursor: pointer;
             transition: all 0.3s;
             font-weight: 600;
-            font-size: 13px;
+            font-size: 11px;
+            white-space: nowrap;
         }
 
         .action-btn:hover {
@@ -1101,8 +1106,7 @@
 
         .table-view {
             width: 100%;
-            min-width: 800px;
-            /* Reduced from 1100px */
+            min-width: 700px;
         }
 
         .table-container .table-view {
