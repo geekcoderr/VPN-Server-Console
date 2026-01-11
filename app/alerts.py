@@ -1,5 +1,5 @@
 """
-DNS Blocking Module - Military-Grade v4.1
+DNS Blocking Module - Network-Level v4.3.0
 Simple, robust, file-based approach with instant reload.
 """
 from fastapi import APIRouter, Depends, HTTPException
@@ -16,6 +16,7 @@ router = APIRouter(prefix="/api/alerts", tags=["alerts"])
 # File paths
 BLACKLIST_JSON = DATA_DIR / "blacklist.json"
 BLOCKED_HOSTS = PROJECT_ROOT / "coredns" / "blocked.hosts"
+WILDCARDS_CONF = PROJECT_ROOT / "coredns" / "wildcards.conf"
 
 class DomainRequest(BaseModel):
     domain: str | None = None
@@ -51,6 +52,21 @@ def _sync_to_hosts(domains: list):
                 if not d.startswith("www."):
                     f.write(f"0.0.0.0 www.{d}\n")
     print(f"🛡️  DNS Blacklist synced: {len(domains)} domains")
+
+def _sync_to_wildcards(domains: list):
+    """Write wildcard rules to CoreDNS wildcards.conf using template plugin."""
+    os.makedirs(os.path.dirname(WILDCARDS_CONF), exist_ok=True)
+    with open(WILDCARDS_CONF, "w") as f:
+        f.write("# CoreDNS Wildcard Rules - AUTO-GENERATED\n\n")
+        for domain in domains:
+            d = domain.strip().lower()
+            if d:
+                # Use template plugin to block the domain and all subdomains
+                # This matches d and *.d
+                f.write(f"template ANY ANY {d} {{\n")
+                f.write(f"    answer \"{{{{ .Name }}}} 1 IN A 0.0.0.0\"\n")
+                f.write("}\n\n")
+    print(f"🌐 Wildcard rules synced: {len(domains)} domains")
 
 def _reload_coredns():
     """Signal CoreDNS to reload configuration for instant blocking."""
@@ -89,6 +105,7 @@ async def add_to_blacklist(req: DomainRequest, admin: str = Depends(get_current_
     if added_count > 0:
         _save_blacklist(domains)
         _sync_to_hosts(domains)
+        _sync_to_wildcards(domains)
         _reload_coredns()
     
     return {"message": f"Successfully blocked {added_count} new domains", "total": len(domains)}
@@ -110,6 +127,7 @@ async def bulk_remove_from_blacklist(req: DomainRequest, admin: str = Depends(ge
     if removed_count > 0:
         _save_blacklist(domains)
         _sync_to_hosts(domains)
+        _sync_to_wildcards(domains)
         _reload_coredns()
     
     return {"message": f"Successfully unblocked {removed_count} domains", "total": len(domains)}
@@ -126,6 +144,7 @@ async def remove_from_blacklist(domain: str, admin: str = Depends(get_current_ad
     domains.remove(domain)
     _save_blacklist(domains)
     _sync_to_hosts(domains)
+    _sync_to_wildcards(domains)
     _reload_coredns()
     
     return {"message": f"Domain {domain} unblocked", "total": len(domains)}
@@ -136,6 +155,7 @@ async def test_blocking(admin: str = Depends(get_current_admin)):
     results = {
         "json_file": {"exists": False, "domains": 0},
         "hosts_file": {"exists": False, "lines": 0},
+        "wildcards_file": {"exists": False},
         "coredns": {"running": False},
         "status": "UNKNOWN"
     }
@@ -153,6 +173,10 @@ async def test_blocking(admin: str = Depends(get_current_admin)):
             lines = [l for l in f.readlines() if l.strip() and not l.startswith("#")]
             results["hosts_file"]["lines"] = len(lines)
     
+    # Check wildcards file
+    if WILDCARDS_CONF.exists():
+        results["wildcards_file"]["exists"] = True
+    
     # Check CoreDNS container
     try:
         result = subprocess.run(["docker", "ps", "--filter", "name=vpn-dns", "--format", "{{.Status}}"],
@@ -163,7 +187,8 @@ async def test_blocking(admin: str = Depends(get_current_admin)):
         pass
     
     # Determine status
-    if results["json_file"]["exists"] and results["hosts_file"]["exists"] and results["coredns"]["running"]:
+    if results["json_file"]["exists"] and results["hosts_file"]["exists"] and \
+       results["wildcards_file"]["exists"] and results["coredns"]["running"]:
         if results["json_file"]["domains"] > 0 and results["hosts_file"]["lines"] > 0:
             results["status"] = "WORKING"
         elif results["json_file"]["domains"] == 0:

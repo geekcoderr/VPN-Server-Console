@@ -14,7 +14,7 @@
 -   **Strict ACLs:** Granular access control (Internet-only, Intranet-only, Full Access).
 
 ### ⚡ High-Performance Architecture
--   **Military-Grade DNS Enforcement:** Forced DNS hijacking via iptables DNAT. Blocks DoT, IPv6 DNS, and custom client DNS.
+-   **Network-Level DNS Enforcement:** Forced DNS hijacking via iptables DNAT. Blocks DoT, IPv6 DNS, and custom client DNS.
 -   **TCP BBR & Kernel Tuning:** Optimized for high-throughput and low-latency mesh networking.
 -   **Hybrid Database:** MySQL for core data + Redis for high-speed caching.
 

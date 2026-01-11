@@ -1942,329 +1942,378 @@
                         </tbody>
                     </table>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Admin Settings Modal -->
-    <div class="overlay" id="settingsModal">
-        <div class="modal" style="max-width: 500px;">
-            <button class="modal-close" onclick="closeModal('settingsModal')">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-            </button>
-            <h3 style="font-size: 28px; margin-bottom: 24px;">Admin Settings</h3>
-
-            <!-- 2FA Section -->
-            <div
-                style="margin-bottom: 32px; padding: 24px; background: rgba(99, 102, 241, 0.05); border: 1px solid var(--glass-border); border-radius: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h4 style="display: flex; align-items: center; gap: 10px; margin: 0;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--glass-border);">
+                    <h4
+                        style="color: white; font-size: 14px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2.5">
-                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="16" x2="12" y2="12" />
+                            <line x1="12" y1="8" x2="12.01" y2="8" />
                         </svg>
-                        Two-Factor Auth
+                        Troubleshooting Guide
                     </h4>
-                    <div id="2fa-badge"
-                        style="font-size: 10px; font-weight: 800; text-transform: uppercase; padding: 4px 10px; border-radius: 20px; letter-spacing: 1px;">
-                        Checking...
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div
+                            style="background: rgba(255,255,255,0.02); padding: 16px; border-radius: 12px; border: 1px solid var(--glass-border);">
+                            <p
+                                style="font-size: 12px; color: var(--accent); font-weight: 700; margin-bottom: 8px; text-transform: uppercase;">
+                                Flush DNS Cache</p>
+                            <code
+                                style="display: block; background: black; padding: 8px; border-radius: 6px; font-size: 11px; color: #10b981; margin-bottom: 8px;">ipconfig /flushdns</code>
+                            <p style="font-size: 11px; color: var(--text-dim);">Run in CMD (Windows) or use Incognito
+                                mode to bypass browser cache.</p>
+                        </div>
+                        <div
+                            style="background: rgba(255,255,255,0.02); padding: 16px; border-radius: 12px; border: 1px solid var(--glass-border);">
+                            <p
+                                style="font-size: 12px; color: var(--warning); font-weight: 700; margin-bottom: 8px; text-transform: uppercase;">
+                                Disable DoH</p>
+                            <p style="font-size: 11px; color: var(--text-dim); line-height: 1.4;">
+                                Browsers like Chrome/Firefox use "DNS over HTTPS" which bypasses VPN DNS. Disable it in:
+                                <br><code>Settings > Privacy > Security > Use secure DNS</code>
+                            </p>
+                        </div>
                     </div>
                 </div>
 
-                <div id="2fa-status-text"
-                    style="margin-bottom: 20px; font-size: 13px; color: var(--text-dim); line-height: 1.5;">
-                    Verifying security posture...
+                <div style="margin-top: 24px; display: flex; justify-content: flex-end;">
+                    <button onclick="closeModal('modalBlacklist')" class="btn-secondary"
+                        style="padding: 12px 24px;">Close</button>
                 </div>
-
-                <div id="2fa-setup-area" style="display: none; text-align: center; padding-top: 10px;">
-                    <div id="2fa-qr"
-                        style="background: white; padding: 12px; border-radius: 12px; width: 180px; margin: 0 auto 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
-                    </div>
-                    <p style="font-size: 12px; color: var(--text-dim); margin-bottom: 20px; padding: 0 20px;">
-                        Scan this
-                        QR code with Google Authenticator or Authy to link your account.</p>
-                    <input type="text" id="verifyCode" placeholder="000000" maxlength="6"
-                        style="width: 160px; padding: 14px; margin-bottom: 20px; background: rgba(255,255,255,0.04); border: 2px solid var(--glass-border); border-radius: 14px; color: white; text-align: center; letter-spacing: 6px; font-weight: 800; font-size: 20px; transition: 0.3s;"
-                        onfocus="this.style.borderColor='var(--accent)'"
-                        onblur="this.style.borderColor='var(--glass-border)'">
-                    <button class="btn-create" style="width: 100%;" onclick="verify2FASetup()">Verify &
-                        Enable</button>
-                </div>
-                <button id="btn-setup-2fa" class="btn-create" style="width: 100%; display: none;"
-                    onclick="setup2FA()">Configure MFA</button>
-                <button id="btn-remove-2fa" class="btn-danger" style="width: 100%; display: none; margin-top: 12px;"
-                    onclick="confirmRemoveMFA()">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2.5">
-                        <polyline points="3 6 5 6 21 6" />
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                    </svg>
-                    Remove MFA
-                </button>
-            </div>
-
-            <!-- Password Change -->
-            <div style="padding: 20px; border: 1px solid var(--glass-border); border-radius: 16px;">
-                <h4 style="margin-bottom: 16px;">Change Password</h4>
-                <input type="password" id="currentPass" placeholder="Current Password"
-                    style="width: 100%; padding: 12px; margin-bottom: 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border); border-radius: 8px; color: white;">
-                <input type="password" id="newPass" placeholder="New Password"
-                    style="width: 100%; padding: 12px; margin-bottom: 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border); border-radius: 8px; color: white;">
-                <button class="btn-secondary" style="width: 100%;" onclick="changePassword()">Update
-                    Password</button>
             </div>
         </div>
-    </div>
 
-    <!-- Alerts Management Modal -->
-    <div class="overlay" id="alertsModal">
-        <div class="modal">
-            <button class="modal-close" onclick="closeModal('alertsModal')">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-            </button>
-            <h3 style="font-size: 28px; margin-bottom: 8px;">Restricted Domains</h3>
-            <p style="color: var(--text-dim); font-size: 14px; margin-bottom: 32px;">
-                Manage the blacklist. Access to these domains will trigger real-time alerts.
-                <br><br>
-                <span
-                    style="color: var(--accent); font-size: 11px; font-weight: 800; text-transform: uppercase; background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(99, 102, 241, 0.05)); padding: 8px 16px; border-radius: 12px; border: 1px solid rgba(99, 102, 241, 0.3); display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        <!-- Admin Settings Modal -->
+        <div class="overlay" id="settingsModal">
+            <div class="modal" style="max-width: 500px;">
+                <button class="modal-close" onclick="closeModal('settingsModal')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
                     </svg>
-                    <span style="color: var(--success)">Military-Grade DNS Enforcement Active:</span> Custom DNS
-                    settings are automatically intercepted.
-                </span>
-            </p>
+                </button>
+                <h3 style="font-size: 28px; margin-bottom: 24px;">Admin Settings</h3>
 
-            <div style="margin-bottom: 24px;">
-                <textarea id="newDomains"
-                    placeholder="Enter domains to restrict (one per line)&#10;e.g.&#10;facebook.com&#10;tiktok.com"
-                    style="width: 100%; height: 120px; padding: 16px; background: rgba(255,255,255,0.04); border: 2px solid var(--glass-border); border-radius: 18px; color: white; font-size: 15px; transition: 0.3s; resize: none; font-family: 'Inter', sans-serif;"
-                    onfocus="this.style.borderColor='var(--accent)'"
-                    onblur="this.style.borderColor='var(--glass-border)'"></textarea>
-                <div style="display: flex; gap: 12px; margin-top: 12px;">
-                    <button onclick="addToBlacklist(this)" class="btn-create"
-                        style="flex: 1; padding: 14px; background: var(--error); box-shadow: 0 10px 20px rgba(239, 68, 68, 0.2);">
-                        Restrict Domains
+                <!-- 2FA Section -->
+                <div
+                    style="margin-bottom: 32px; padding: 24px; background: rgba(99, 102, 241, 0.05); border: 1px solid var(--glass-border); border-radius: 20px;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h4 style="display: flex; align-items: center; gap: 10px; margin: 0;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                            </svg>
+                            Two-Factor Auth
+                        </h4>
+                        <div id="2fa-badge"
+                            style="font-size: 10px; font-weight: 800; text-transform: uppercase; padding: 4px 10px; border-radius: 20px; letter-spacing: 1px;">
+                            Checking...
+                        </div>
+                    </div>
+
+                    <div id="2fa-status-text"
+                        style="margin-bottom: 20px; font-size: 13px; color: var(--text-dim); line-height: 1.5;">
+                        Verifying security posture...
+                    </div>
+
+                    <div id="2fa-setup-area" style="display: none; text-align: center; padding-top: 10px;">
+                        <div id="2fa-qr"
+                            style="background: white; padding: 12px; border-radius: 12px; width: 180px; margin: 0 auto 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+                        </div>
+                        <p style="font-size: 12px; color: var(--text-dim); margin-bottom: 20px; padding: 0 20px;">
+                            Scan this
+                            QR code with Google Authenticator or Authy to link your account.</p>
+                        <input type="text" id="verifyCode" placeholder="000000" maxlength="6"
+                            style="width: 160px; padding: 14px; margin-bottom: 20px; background: rgba(255,255,255,0.04); border: 2px solid var(--glass-border); border-radius: 14px; color: white; text-align: center; letter-spacing: 6px; font-weight: 800; font-size: 20px; transition: 0.3s;"
+                            onfocus="this.style.borderColor='var(--accent)'"
+                            onblur="this.style.borderColor='var(--glass-border)'">
+                        <button class="btn-create" style="width: 100%;" onclick="verify2FASetup()">Verify &
+                            Enable</button>
+                    </div>
+                    <button id="btn-setup-2fa" class="btn-create" style="width: 100%; display: none;"
+                        onclick="setup2FA()">Configure MFA</button>
+                    <button id="btn-remove-2fa" class="btn-danger" style="width: 100%; display: none; margin-top: 12px;"
+                        onclick="confirmRemoveMFA()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                        Remove MFA
                     </button>
                 </div>
-            </div>
 
-            <div style="margin-bottom: 20px; display: flex; gap: 12px; align-items: center;">
-                <div style="position: relative; flex: 1;">
-                    <svg style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-dim);"
-                        width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <circle cx="11" cy="11" r="8" />
-                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                    </svg>
-                    <input type="text" id="searchBlacklist" placeholder="Search restricted domains..."
-                        oninput="filterBlacklist()"
-                        style="width: 100%; padding: 12px 12px 12px 40px; background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border); border-radius: 12px; color: white; font-size: 14px; transition: 0.3s;">
+                <!-- Password Change -->
+                <div style="padding: 20px; border: 1px solid var(--glass-border); border-radius: 16px;">
+                    <h4 style="margin-bottom: 16px;">Change Password</h4>
+                    <input type="password" id="currentPass" placeholder="Current Password"
+                        style="width: 100%; padding: 12px; margin-bottom: 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border); border-radius: 8px; color: white;">
+                    <input type="password" id="newPass" placeholder="New Password"
+                        style="width: 100%; padding: 12px; margin-bottom: 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border); border-radius: 8px; color: white;">
+                    <button class="btn-secondary" style="width: 100%;" onclick="changePassword()">Update
+                        Password</button>
                 </div>
-                <button id="btnBulkDelete" onclick="bulkDeleteBlacklist()" class="btn-secondary"
-                    style="display: none; padding: 12px 20px; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); color: var(--error); border-radius: 12px; font-weight: 600; font-size: 13px;">
-                    Delete Selected
-                </button>
             </div>
+        </div>
 
-            <div class="table-view"
-                style="max-height: 400px; overflow-y: auto; border-radius: 16px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.2);">
-                <table style="width: 100%; border-collapse: collapse;">
-                    <thead style="position: sticky; top: 0; z-index: 10; background: #1a1a1a;">
-                        <tr>
-                            <th
-                                style="width: 50px; padding: 16px; text-align: center; border-bottom: 1px solid var(--glass-border);">
-                                <label class="custom-checkbox">
-                                    <input type="checkbox" id="selectAllDomains" onclick="toggleSelectAllDomains(this)">
-                                    <span class="checkmark"></span>
-                                </label>
-                            </th>
-                            <th
-                                style="padding: 16px; text-align: left; color: var(--text-dim); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; border-bottom: 1px solid var(--glass-border);">
-                                Domain Name</th>
-                            <th
-                                style="padding: 16px; text-align: right; color: var(--text-dim); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; border-bottom: 1px solid var(--glass-border);">
-                                Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="blacklistTableBody">
-                        <!-- Populated by JS -->
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Test Blocking Button -->
-            <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--glass-border);">
-                <button onclick="testBlocking()" class="btn-test" style="width: 100%;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                        style="margin-right: 8px; vertical-align: middle;">
-                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                        <polyline points="22 4 12 14.01 9 11.01" />
+        <!-- Alerts Management Modal -->
+        <div class="overlay" id="alertsModal">
+            <div class="modal">
+                <button class="modal-close" onclick="closeModal('alertsModal')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
                     </svg>
-                    Test DNS Blocking System
                 </button>
-                <p id="testResult"
-                    style="margin-top: 12px; font-size: 13px; color: var(--text-dim); text-align: center;"></p>
+                <h3 style="font-size: 28px; margin-bottom: 8px;">Restricted Domains</h3>
+                <p style="color: var(--text-dim); font-size: 14px; margin-bottom: 24px; line-height: 1.6;">
+                    Manage the blacklist. Access to these domains will trigger real-time alerts.
+                </p>
+
+                <div
+                    style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 16px; padding: 20px; margin-bottom: 24px;">
+                    <div
+                        style="display: flex; align-items: center; gap: 12px; color: var(--accent); font-weight: 700; margin-bottom: 8px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        </svg>
+                        Network-Level DNS Enforcement Active
+                    </div>
+                    <p style="font-size: 13px; color: var(--text-dim); line-height: 1.5;">
+                        Custom DNS settings are automatically intercepted. Blocking a domain (e.g.,
+                        <code>google.com</code>) now automatically blocks all its subdomains (wildcard support).
+                    </p>
+                </div>
+
+                <div style="margin-bottom: 24px;">
+                    <textarea id="newDomains"
+                        placeholder="Enter domains to restrict (one per line)&#10;e.g.&#10;facebook.com&#10;tiktok.com"
+                        style="width: 100%; height: 120px; padding: 16px; background: rgba(255,255,255,0.04); border: 2px solid var(--glass-border); border-radius: 18px; color: white; font-size: 15px; transition: 0.3s; resize: none; font-family: 'Inter', sans-serif;"
+                        onfocus="this.style.borderColor='var(--accent)'"
+                        onblur="this.style.borderColor='var(--glass-border)'"></textarea>
+                    <div style="display: flex; gap: 12px; margin-top: 12px;">
+                        <button onclick="addToBlacklist(this)" class="btn-create"
+                            style="flex: 1; padding: 14px; background: var(--error); box-shadow: 0 10px 20px rgba(239, 68, 68, 0.2);">
+                            Restrict Domains
+                        </button>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px; display: flex; gap: 12px; align-items: center;">
+                    <div style="position: relative; flex: 1;">
+                        <svg style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-dim);"
+                            width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <circle cx="11" cy="11" r="8" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        </svg>
+                        <input type="text" id="searchBlacklist" placeholder="Search restricted domains..."
+                            oninput="filterBlacklist()"
+                            style="width: 100%; padding: 12px 12px 12px 40px; background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border); border-radius: 12px; color: white; font-size: 14px; transition: 0.3s;">
+                    </div>
+                    <button id="btnBulkDelete" onclick="bulkDeleteBlacklist()" class="btn-secondary"
+                        style="display: none; padding: 12px 20px; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); color: var(--error); border-radius: 12px; font-weight: 600; font-size: 13px;">
+                        Delete Selected
+                    </button>
+                </div>
+
+                <div class="table-view"
+                    style="max-height: 400px; overflow-y: auto; border-radius: 16px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.2);">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead style="position: sticky; top: 0; z-index: 10; background: #1a1a1a;">
+                            <tr>
+                                <th
+                                    style="width: 50px; padding: 16px; text-align: center; border-bottom: 1px solid var(--glass-border);">
+                                    <label class="custom-checkbox">
+                                        <input type="checkbox" id="selectAllDomains"
+                                            onclick="toggleSelectAllDomains(this)">
+                                        <span class="checkmark"></span>
+                                    </label>
+                                </th>
+                                <th
+                                    style="padding: 16px; text-align: left; color: var(--text-dim); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; border-bottom: 1px solid var(--glass-border);">
+                                    Domain Name</th>
+                                <th
+                                    style="padding: 16px; text-align: right; color: var(--text-dim); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; border-bottom: 1px solid var(--glass-border);">
+                                    Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="blacklistTableBody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Test Blocking Button -->
+                <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--glass-border);">
+                    <button onclick="testBlocking()" class="btn-test" style="width: 100%;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5" style="margin-right: 8px; vertical-align: middle;">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                            <polyline points="22 4 12 14.01 9 11.01" />
+                        </svg>
+                        Test DNS Blocking System
+                    </button>
+                    <p id="testResult"
+                        style="margin-top: 12px; font-size: 13px; color: var(--text-dim); text-align: center;"></p>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Custom Interaction Modal -->
-    <div class="overlay" id="customModal">
-        <div class="modal" style="max-width: 450px; padding: 48px; text-align: center;">
-            <button class="modal-close" onclick="closeModal('customModal')">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-            </button>
-            <div id="modalIcon" style="margin-bottom: 24px;">
-                <!-- Vector injected here -->
-            </div>
-            <h3 id="modalTitle" style="font-size: 24px; margin-bottom: 16px;">Confirm Action</h3>
-            <p id="modalText" style="color: var(--text-dim); font-size: 15px; margin-bottom: 32px; line-height: 1.6;">
-            </p>
-            <div id="modalFooter" style="display: flex; gap: 12px;">
-                <button id="modalBtnSecondary" class="btn-modal btn-modal-secondary"
-                    onclick="closeModal('customModal')">Cancel</button>
-                <button id="modalBtnPrimary" class="btn-modal btn-modal-primary">Proceed</button>
+        <!-- Custom Interaction Modal -->
+        <div class="overlay" id="customModal">
+            <div class="modal" style="max-width: 450px; padding: 48px; text-align: center;">
+                <button class="modal-close" onclick="closeModal('customModal')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+                <div id="modalIcon" style="margin-bottom: 24px;">
+                    <!-- Vector injected here -->
+                </div>
+                <h3 id="modalTitle" style="font-size: 24px; margin-bottom: 16px;">Confirm Action</h3>
+                <p id="modalText"
+                    style="color: var(--text-dim); font-size: 15px; margin-bottom: 32px; line-height: 1.6;">
+                </p>
+                <div id="modalFooter" style="display: flex; gap: 12px;">
+                    <button id="modalBtnSecondary" class="btn-modal btn-modal-secondary"
+                        onclick="closeModal('customModal')">Cancel</button>
+                    <button id="modalBtnPrimary" class="btn-modal btn-modal-primary">Proceed</button>
+                </div>
             </div>
         </div>
-    </div>
 
-    <div id="toast"></div>
+        <div id="toast"></div>
 
-    <script>
-        let selectedOS = 'android';
-        let aclProfile = 'full';
-        let websocket = null;
-        let allUsers = []; // Global store for searching
+        <script>
+            let selectedOS = 'android';
+            let aclProfile = 'full';
+            let websocket = null;
+            let allUsers = []; // Global store for searching
 
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebar-overlay');
-            const wrapper = document.querySelector('.main-wrapper');
-
-            // Desktop Toggle Logic
-            if (window.innerWidth > 1200) {
-                sidebar.classList.toggle('collapsed');
-                wrapper.classList.toggle('expanded');
-            }
-            // Mobile Toggle Logic
-            else {
-                sidebar.classList.toggle('open');
-                overlay.classList.toggle('show');
-            }
-        }
-
-        function showSection(section) {
-            // Close sidebar on mobile for any nav click
-            if (window.innerWidth <= 1200) {
+            function toggleSidebar() {
                 const sidebar = document.getElementById('sidebar');
                 const overlay = document.getElementById('sidebar-overlay');
-                sidebar.classList.remove('open');
-                overlay.classList.remove('show');
+                const wrapper = document.querySelector('.main-wrapper');
+
+                // Desktop Toggle Logic
+                if (window.innerWidth > 1200) {
+                    sidebar.classList.toggle('collapsed');
+                    wrapper.classList.toggle('expanded');
+                }
+                // Mobile Toggle Logic
+                else {
+                    sidebar.classList.toggle('open');
+                    overlay.classList.toggle('show');
+                }
             }
 
-            if (section === 'dashboard') {
-                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-                event.target.closest('.nav-item').classList.add('active');
-
-                // Auto-toggle sidebar on desktop (ChatGPT style)
-                if (window.innerWidth > 1200) {
+            function showSection(section) {
+                // Close sidebar on mobile for any nav click
+                if (window.innerWidth <= 1200) {
                     const sidebar = document.getElementById('sidebar');
-                    const wrapper = document.querySelector('.main-wrapper');
+                    const overlay = document.getElementById('sidebar-overlay');
+                    sidebar.classList.remove('open');
+                    overlay.classList.remove('show');
+                }
 
-                    if (sidebar.classList.contains('collapsed')) {
-                        sidebar.classList.remove('collapsed');
-                        wrapper.classList.remove('expanded');
-                    } else {
-                        sidebar.classList.add('collapsed');
-                        wrapper.classList.add('expanded');
+                if (section === 'dashboard') {
+                    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                    event.target.closest('.nav-item').classList.add('active');
+
+                    // Auto-toggle sidebar on desktop (ChatGPT style)
+                    if (window.innerWidth > 1200) {
+                        const sidebar = document.getElementById('sidebar');
+                        const wrapper = document.querySelector('.main-wrapper');
+
+                        if (sidebar.classList.contains('collapsed')) {
+                            sidebar.classList.remove('collapsed');
+                            wrapper.classList.remove('expanded');
+                        } else {
+                            sidebar.classList.add('collapsed');
+                            wrapper.classList.add('expanded');
+                        }
                     }
                 }
             }
-        }
 
-        function handleSearch() {
-            const query = document.getElementById('tableSearch').value.toLowerCase();
-            const filtered = allUsers.filter(u =>
-                u.username.toLowerCase().includes(query) ||
-                u.assigned_ip.toLowerCase().includes(query) ||
-                (u.last_endpoint && u.last_endpoint.toLowerCase().includes(query))
-            );
-            renderTable(filtered);
-        }
-
-        function setOS(os, el) {
-            selectedOS = os;
-            el.parentElement.querySelectorAll('.os-option').forEach(opt => opt.classList.remove('active'));
-            el.classList.add('active');
-        }
-
-        function setACL(profile, el) {
-            aclProfile = profile;
-            el.parentElement.querySelectorAll('.os-option').forEach(opt => opt.classList.remove('active'));
-            el.classList.add('active');
-        }
-
-        async function init() {
-            try {
-                const res = await fetch('/auth/me');
-                if (!res.ok) { window.location.href = "/login.html"; return; }
-                const data = await res.json();
-                document.getElementById('adminName').innerText = data.username;
-                update2FAUI(data['2fa_enabled']);
-
-                await loadNodes();
-                startLiveFeeds();
-
-                // Clear Loader
-                setTimeout(() => {
-                    const screen = document.getElementById('init-screen');
-                    screen.style.opacity = '0';
-                    setTimeout(() => screen.style.display = 'none', 600);
-                }, 1000);
-
-            } catch (err) {
-                console.error("Secure Init Failed:", err);
-                window.location.href = "/login.html";
-            }
-        }
-
-        let lastLoad = 0;
-        async function loadNodes() {
-            // Anti-Spam: Prevent more than 1 fetch per 2 seconds
-            if (Date.now() - lastLoad < 2000) return;
-            lastLoad = Date.now();
-
-            try {
-                const res = await fetch('/api/users');
-                if (!res.ok) throw new Error("Database Fetch Failed");
-                const data = await res.json();
-                allUsers = data.users; // Store globally
-                handleSearch(); // Render with current search filter
-                updateStatsOverview(data.users);
-            } catch (err) {
-                document.getElementById('usersTableBody').innerHTML = `<tr><td colspan="8" style="text-align:center; padding:100px; color:var(--error); font-weight:700">CRITICAL: FAILED TO FETCH NODES [ERROR CODE 500]</td></tr>`;
-            }
-        }
-
-        function renderTable(users) {
-            const tbody = document.getElementById('usersTableBody');
-            if (!users || users.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:100px; color:var(--text-dim); font-weight:600">NULL_STATE: No Nodes Provisioned in this Realm.</td></tr>`;
-                return;
+            function handleSearch() {
+                const query = document.getElementById('tableSearch').value.toLowerCase();
+                const filtered = allUsers.filter(u =>
+                    u.username.toLowerCase().includes(query) ||
+                    u.assigned_ip.toLowerCase().includes(query) ||
+                    (u.last_endpoint && u.last_endpoint.toLowerCase().includes(query))
+                );
+                renderTable(filtered);
             }
 
-            tbody.innerHTML = users.map(u => `
+            function setOS(os, el) {
+                selectedOS = os;
+                el.parentElement.querySelectorAll('.os-option').forEach(opt => opt.classList.remove('active'));
+                el.classList.add('active');
+            }
+
+            function setACL(profile, el) {
+                aclProfile = profile;
+                el.parentElement.querySelectorAll('.os-option').forEach(opt => opt.classList.remove('active'));
+                el.classList.add('active');
+            }
+
+            async function init() {
+                try {
+                    const res = await fetch('/auth/me');
+                    if (!res.ok) { window.location.href = "/login.html"; return; }
+                    const data = await res.json();
+                    document.getElementById('adminName').innerText = data.username;
+                    update2FAUI(data['2fa_enabled']);
+
+                    await loadNodes();
+                    startLiveFeeds();
+
+                    // Clear Loader
+                    setTimeout(() => {
+                        const screen = document.getElementById('init-screen');
+                        screen.style.opacity = '0';
+                        setTimeout(() => screen.style.display = 'none', 600);
+                    }, 1000);
+
+                } catch (err) {
+                    console.error("Secure Init Failed:", err);
+                    window.location.href = "/login.html";
+                }
+            }
+
+            let lastLoad = 0;
+            async function loadNodes() {
+                // Anti-Spam: Prevent more than 1 fetch per 2 seconds
+                if (Date.now() - lastLoad < 2000) return;
+                lastLoad = Date.now();
+
+                try {
+                    const res = await fetch('/api/users');
+                    if (!res.ok) throw new Error("Database Fetch Failed");
+                    const data = await res.json();
+                    allUsers = data.users; // Store globally
+                    handleSearch(); // Render with current search filter
+                    updateStatsOverview(data.users);
+                } catch (err) {
+                    document.getElementById('usersTableBody').innerHTML = `<tr><td colspan="8" style="text-align:center; padding:100px; color:var(--error); font-weight:700">CRITICAL: FAILED TO FETCH NODES [ERROR CODE 500]</td></tr>`;
+                }
+            }
+
+            function renderTable(users) {
+                const tbody = document.getElementById('usersTableBody');
+                if (!users || users.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:100px; color:var(--text-dim); font-weight:600">NULL_STATE: No Nodes Provisioned in this Realm.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = users.map(u => `
                 <tr id="node-${u.public_key}" onclick="showUserDetails('${u.username}', ${u.transfer_rx}, ${u.transfer_tx})" style="cursor: pointer;">
                     <td>
                         <div class="node-cell">
@@ -2328,460 +2377,460 @@
                     </td>
                 </tr>
             `).join('');
-        }
+            }
 
-        function updateStatsOverview(users) {
-            document.getElementById('totalUsers').innerText = users.length;
-            const liveCount = users.filter(u => u.connected).length;
-            document.getElementById('activeSessions').innerText = liveCount;
+            function updateStatsOverview(users) {
+                document.getElementById('totalUsers').innerText = users.length;
+                const liveCount = users.filter(u => u.connected).length;
+                document.getElementById('activeSessions').innerText = liveCount;
 
-            let totalFlux = 0;
-            users.forEach(u => totalFlux += (u.transfer_rx || 0) + (u.transfer_tx || 0));
-            document.getElementById('totalTraffic').innerText = formatBytes(totalFlux);
-        }
+                let totalFlux = 0;
+                users.forEach(u => totalFlux += (u.transfer_rx || 0) + (u.transfer_tx || 0));
+                document.getElementById('totalTraffic').innerText = formatBytes(totalFlux);
+            }
 
-        function startLiveFeeds() {
-            if (document.visibilityState === 'hidden') return;
+            function startLiveFeeds() {
+                if (document.visibilityState === 'hidden') return;
 
-            const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            websocket = new WebSocket(`${proto}//${window.location.host}/ws/stats`);
+                const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                websocket = new WebSocket(`${proto}//${window.location.host}/ws/stats`);
 
-            websocket.onmessage = (e) => {
-                try {
-                    const msg = JSON.parse(e.data);
-                    if (msg.type === "metrics") syncLiveMetrics(msg.data);
-                } catch (err) { }
-            };
+                websocket.onmessage = (e) => {
+                    try {
+                        const msg = JSON.parse(e.data);
+                        if (msg.type === "metrics") syncLiveMetrics(msg.data);
+                    } catch (err) { }
+                };
 
-            websocket.onclose = () => {
+                websocket.onclose = () => {
+                    if (document.visibilityState === 'visible') {
+                        setTimeout(startLiveFeeds, 5000);
+                    }
+                };
+            }
+
+            document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'visible') {
-                    setTimeout(startLiveFeeds, 5000);
+                    startLiveFeeds();
+                } else {
+                    if (websocket) websocket.close();
                 }
-            };
-        }
-
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
-                startLiveFeeds();
-            } else {
-                if (websocket) websocket.close();
-            }
-        });
-
-        let lastMetricsTimestamp = Date.now();
-        let lastMetricsData = {};
-
-        function syncLiveMetrics(metrics) {
-            let activeNodes = 0;
-            let currentTotalBytes = 0;
-            let currentSpeed = 0;
-            const now = Date.now();
-            const timeDelta = (now - lastMetricsTimestamp) / 1000; // in seconds
-
-            if (timeDelta > 0) { // Avoid divide by zero
-                for (const [key, hub] of Object.entries(metrics)) {
-                    if (hub.connected) activeNodes++;
-
-                    const totalNodeBytes = (hub.transfer_rx || 0) + (hub.transfer_tx || 0);
-                    currentTotalBytes += totalNodeBytes;
-
-                    // Calculate node speed
-                    const lastNodeBytes = lastMetricsData[key] || totalNodeBytes;
-                    const nodeDelta = totalNodeBytes - lastNodeBytes;
-                    // Only count positive deltas (ignores restarts/resets)
-                    if (nodeDelta > 0) {
-                        currentSpeed += nodeDelta;
-                    }
-
-                    // Update UI for each node
-                    const dot = document.getElementById(`pulse-${key}`);
-                    const txt = document.getElementById(`pulse-text-${key}`);
-                    const tx = document.getElementById(`tx-${key}`);
-                    const rx = document.getElementById(`rx-${key}`);
-                    const hs = document.getElementById(`handshake-${key}`);
-
-                    if (dot) dot.className = `pulse-dot ${hub.connected ? 'online' : ''}`;
-                    if (txt) {
-                        txt.innerText = hub.connected ? 'ONLINE' : 'OFFLINE';
-                        txt.style.color = hub.connected ? 'var(--success)' : 'var(--text-dim)';
-                    }
-                    if (tx) tx.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg> ${formatBytes(hub.transfer_tx)}`;
-                    if (rx) rx.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg> ${formatBytes(hub.transfer_rx)}`;
-                    if (hs) {
-                        const lastSeen = hub.latest_handshake ? new Date(hub.latest_handshake * 1000).toLocaleString() : 'Awaiting Secure Handshake...';
-                        if (hub.connected || hs.innerText === 'VOID' || hs.innerText === 'Awaiting Secure Handshake...') {
-                            hs.innerText = lastSeen;
-                        }
-                        hs.style.color = hub.connected ? 'var(--text-light)' : 'var(--text-dim)';
-                    }
-
-                    // Store for next loop
-                    lastMetricsData[key] = totalNodeBytes;
-                }
-
-                // Global Stats Updates
-                document.getElementById('activeSessions').innerText = activeNodes;
-                document.getElementById('totalTraffic').innerText = formatBytes(currentTotalBytes); // Accumulated
-
-                // Real-time Bandwidth (Bytes / TimeDelta)
-                const bandwidthBps = currentSpeed / timeDelta;
-                const bwEl = document.getElementById('peakBandwidth') || document.getElementById('peakBw');
-                if (bwEl) bwEl.innerText = formatBytes(bandwidthBps) + '/s';
-            }
-
-            lastMetricsTimestamp = now;
-        }
-
-        /** PREMIUM CUSTOM MODALS **/
-        function triggerPremiumModal({ title, body, icon, btnText, type, onConfirm }) {
-            const modal = document.getElementById('customModal');
-            const iconBox = document.getElementById('modalIcon');
-            const titleEl = document.getElementById('modalTitle');
-            const bodyEl = document.getElementById('modalText');
-            const pBtn = document.getElementById('modalBtnPrimary');
-            const sBtn = document.getElementById('modalBtnSecondary');
-
-            titleEl.innerText = title;
-            bodyEl.innerText = body;
-            pBtn.innerText = btnText || 'Confirm';
-            pBtn.className = `btn-modal ${type === 'danger' ? 'btn-modal-danger' : 'btn-modal-primary'}`;
-
-            // Icon Handling
-            if (type === 'danger') {
-                iconBox.style.background = 'rgba(239, 68, 68, 0.15)';
-                iconBox.innerHTML = `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
-            } else if (type === 'success') {
-                iconBox.style.background = 'rgba(16, 185, 129, 0.15)';
-                iconBox.innerHTML = `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
-            } else {
-                iconBox.style.background = 'rgba(99, 102, 241, 0.15)';
-                iconBox.innerHTML = `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
-            }
-
-            pBtn.onclick = () => {
-                closeModal('customModal');
-                if (onConfirm) onConfirm();
-            };
-
-            showModal('customModal');
-        }
-
-        async function processProvision() {
-            const name = document.getElementById('newUsername').value;
-            if (!name) return triggerToast("Label is required for identity mapping.");
-
-            const res = await fetch('/api/users', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username: name,
-                    client_os: selectedOS,
-                    acl_profile: aclProfile
-                })
             });
 
-            if (res.ok) {
-                const data = await res.json();
-                closeModal('provisionModal');
-                spawnInjectedIdentity(data.qr_code, data.client_config, name);
-                loadNodes();
-                triggerToast(`Identity <b class="alert-name">${name}</b> Injected Successfully`);
-            } else {
-                const err = await res.json();
-                triggerPremiumModal({
-                    title: "Provision Error",
-                    body: err.detail || "The system encountered a logic error during deployment.",
-                    type: "danger",
-                    btnText: "Dismiss"
+            let lastMetricsTimestamp = Date.now();
+            let lastMetricsData = {};
+
+            function syncLiveMetrics(metrics) {
+                let activeNodes = 0;
+                let currentTotalBytes = 0;
+                let currentSpeed = 0;
+                const now = Date.now();
+                const timeDelta = (now - lastMetricsTimestamp) / 1000; // in seconds
+
+                if (timeDelta > 0) { // Avoid divide by zero
+                    for (const [key, hub] of Object.entries(metrics)) {
+                        if (hub.connected) activeNodes++;
+
+                        const totalNodeBytes = (hub.transfer_rx || 0) + (hub.transfer_tx || 0);
+                        currentTotalBytes += totalNodeBytes;
+
+                        // Calculate node speed
+                        const lastNodeBytes = lastMetricsData[key] || totalNodeBytes;
+                        const nodeDelta = totalNodeBytes - lastNodeBytes;
+                        // Only count positive deltas (ignores restarts/resets)
+                        if (nodeDelta > 0) {
+                            currentSpeed += nodeDelta;
+                        }
+
+                        // Update UI for each node
+                        const dot = document.getElementById(`pulse-${key}`);
+                        const txt = document.getElementById(`pulse-text-${key}`);
+                        const tx = document.getElementById(`tx-${key}`);
+                        const rx = document.getElementById(`rx-${key}`);
+                        const hs = document.getElementById(`handshake-${key}`);
+
+                        if (dot) dot.className = `pulse-dot ${hub.connected ? 'online' : ''}`;
+                        if (txt) {
+                            txt.innerText = hub.connected ? 'ONLINE' : 'OFFLINE';
+                            txt.style.color = hub.connected ? 'var(--success)' : 'var(--text-dim)';
+                        }
+                        if (tx) tx.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg> ${formatBytes(hub.transfer_tx)}`;
+                        if (rx) rx.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg> ${formatBytes(hub.transfer_rx)}`;
+                        if (hs) {
+                            const lastSeen = hub.latest_handshake ? new Date(hub.latest_handshake * 1000).toLocaleString() : 'Awaiting Secure Handshake...';
+                            if (hub.connected || hs.innerText === 'VOID' || hs.innerText === 'Awaiting Secure Handshake...') {
+                                hs.innerText = lastSeen;
+                            }
+                            hs.style.color = hub.connected ? 'var(--text-light)' : 'var(--text-dim)';
+                        }
+
+                        // Store for next loop
+                        lastMetricsData[key] = totalNodeBytes;
+                    }
+
+                    // Global Stats Updates
+                    document.getElementById('activeSessions').innerText = activeNodes;
+                    document.getElementById('totalTraffic').innerText = formatBytes(currentTotalBytes); // Accumulated
+
+                    // Real-time Bandwidth (Bytes / TimeDelta)
+                    const bandwidthBps = currentSpeed / timeDelta;
+                    const bwEl = document.getElementById('peakBandwidth') || document.getElementById('peakBw');
+                    if (bwEl) bwEl.innerText = formatBytes(bandwidthBps) + '/s';
+                }
+
+                lastMetricsTimestamp = now;
+            }
+
+            /** PREMIUM CUSTOM MODALS **/
+            function triggerPremiumModal({ title, body, icon, btnText, type, onConfirm }) {
+                const modal = document.getElementById('customModal');
+                const iconBox = document.getElementById('modalIcon');
+                const titleEl = document.getElementById('modalTitle');
+                const bodyEl = document.getElementById('modalText');
+                const pBtn = document.getElementById('modalBtnPrimary');
+                const sBtn = document.getElementById('modalBtnSecondary');
+
+                titleEl.innerText = title;
+                bodyEl.innerText = body;
+                pBtn.innerText = btnText || 'Confirm';
+                pBtn.className = `btn-modal ${type === 'danger' ? 'btn-modal-danger' : 'btn-modal-primary'}`;
+
+                // Icon Handling
+                if (type === 'danger') {
+                    iconBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                    iconBox.innerHTML = `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
+                } else if (type === 'success') {
+                    iconBox.style.background = 'rgba(16, 185, 129, 0.15)';
+                    iconBox.innerHTML = `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
+                } else {
+                    iconBox.style.background = 'rgba(99, 102, 241, 0.15)';
+                    iconBox.innerHTML = `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+                }
+
+                pBtn.onclick = () => {
+                    closeModal('customModal');
+                    if (onConfirm) onConfirm();
+                };
+
+                showModal('customModal');
+            }
+
+            async function processProvision() {
+                const name = document.getElementById('newUsername').value;
+                if (!name) return triggerToast("Label is required for identity mapping.");
+
+                const res = await fetch('/api/users', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: name,
+                        client_os: selectedOS,
+                        acl_profile: aclProfile
+                    })
                 });
-            }
-        }
 
-        async function toggleNode(name, currentStatus) {
-            triggerPremiumModal({
-                title: `${currentStatus === 'active' ? 'Disable' : 'Enable'} Access?`,
-                body: `Are you sure you want to ${currentStatus === 'active' ? 'suspend' : 'restore'} mesh access for ${name}?`,
-                btnText: currentStatus === 'active' ? 'Disable' : 'Enable',
-                type: currentStatus === 'active' ? 'danger' : 'success',
-                onConfirm: async () => {
-                    if (isProcessing) return;
-                    isProcessing = true;
-                    try {
-                        const res = await fetch(`/api/users/${name}/toggle`, { method: 'PATCH' });
-                        if (res.ok) {
-                            loadNodes();
-                            triggerToast(`Access for <b class="alert-name">${name}</b> updated.`);
-                        }
-                    } finally {
-                        isProcessing = false;
-                    }
-                }
-            });
-        }
-
-        async function revokeNode(name) {
-            triggerPremiumModal({
-                title: "Revoke Access?",
-                body: `This will permanently disconnect ${name} and invalidate their current configuration.`,
-                type: "danger",
-                btnText: "Confirm Revocation",
-                onConfirm: async () => {
-                    if (isProcessing) return;
-                    isProcessing = true;
-                    try {
-                        const res = await fetch(`/api/users/${name}`, { method: 'DELETE' });
-                        if (res.ok) {
-                            loadNodes();
-                            triggerToast(`Node <b class="alert-name">${name}</b> Revoked from Mesh.`);
-                        }
-                    } finally {
-                        isProcessing = false;
-                    }
-                }
-            });
-        }
-
-        let isProcessing = false;
-        async function getNodeConfig(name) {
-            if (isProcessing) return;
-            isProcessing = true;
-            try {
-                const res = await fetch(`/api/users/${name}/config`);
                 if (res.ok) {
                     const data = await res.json();
+                    closeModal('provisionModal');
                     spawnInjectedIdentity(data.qr_code, data.client_config, name);
-                    if (data.recreated) {
-                        triggerToast("First-time config cached successfully.");
-                    }
-                }
-            } finally {
-                isProcessing = false;
-            }
-        }
-
-        async function rotateKeys(name) {
-            triggerPremiumModal({
-                title: "Rotate Security Keys?",
-                body: `DANGER: This will permanently INVALIDATE the current config for ${name}. Any connected devices will be kicked off immediately and will REQUIRE a new config file.`,
-                btnText: "Rotate Now",
-                type: "danger",
-                onConfirm: async () => {
-                    if (isProcessing) return;
-                    isProcessing = true;
-                    try {
-                        const res = await fetch(`/api/users/${name}/rotate`, { method: 'POST' });
-                        if (res.ok) {
-                            triggerToast("Keys rotated. Peer must re-import.");
-                            getNodeConfig(name); // Show new config automatically
-                        }
-                    } finally {
-                        isProcessing = false;
-                    }
-                }
-            });
-        }
-
-        function spawnInjectedIdentity(qr, raw, name) {
-            document.getElementById('provisionQr').src = qr;
-            document.getElementById('provisionRaw').innerText = raw;
-            showModal('successModal');
-        }
-
-        function triggerToast(msg) {
-            const t = document.getElementById('toast');
-            t.innerHTML = msg;
-            t.style.display = 'block';
-            setTimeout(() => t.style.display = 'none', 4000);
-        }
-
-        function formatBytes(b) {
-            if (!b || b === 0) return '0 B';
-            const k = 1024;
-            const labels = ['B', 'KB', 'MB', 'GB', 'TB'];
-            const i = Math.floor(Math.log(b) / Math.log(k));
-            return parseFloat((b / Math.pow(k, i)).toFixed(2)) + ' ' + labels[i];
-        }
-
-        function getOSIconIcon(os) {
-            const icons = {
-                android: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.3414c-.5511 0-.9978-.4467-.9978-.9978 0-.5511.4467-.9978.9978-.9978.5511 0 .9978.4467.9978.9978 0 .5511-.4467.9978-.9978.9978zm-11.046 0c-.5511 0-.9978-.4467-.9978-.9978 0-.5511.4467-.9978.9978-.9978s.9978.4467.9978.9978c0 .5511-.4467.9978-.9978.9978zm11.4045-6.021l1.9973-3.4592c.1197-.2071.0487-.4721-.1585-.5917-.207-.1196-.472-.0486-.5917.1585l-2.0198 3.4983c-1.2936-.59-2.7303-.9257-4.2464-.9257-1.5161 0-2.9528.3357-4.2464.9257l-2.0198-3.4983c-.1197-.2071-.3847-.2781-.5917-.1585-.2071.1196-.2782.3846-.1585.5917l1.9973 3.4592c-3.1311 1.7088-5.3228 4.8872-5.7148 8.6536h19.1026c-.392-3.7664-2.5837-6.9448-5.7148-8.6536z"/></svg>',
-                ios: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.96.95-2.04 1.72-3.24 1.72-1.16 0-1.54-.72-2.92-.72s-1.84.72-2.92.72c-1.11 0-2.31-.83-3.28-1.81-1.92-1.93-3.4-5.48-3.4-8.6 0-3.3 1.83-5.07 3.63-5.07 1.14 0 1.9.64 2.8.64s1.72-.64 3.03-.64c1.11 0 2.27.42 3.1 1.4-.24.16-1.81 1.1-1.81 3.25 0 2.65 2.19 3.6 2.19 3.6-.04.14-.33.88-.88 1.51zm-5.05-15.11c.91-1.12.75-2.61.75-2.61-.41.02-1.94.31-2.86 1.41-.9 1.04-.76 2.53-.76 2.53.4.03 1.95-.21 2.87-1.33z"/></svg>',
-                linux: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 16.5c0 .38-.21.71-.53.88l-7.97 4.41c-.3.17-.66.17-.96 0l-7.97-4.41c-.32-.17-.53-.5-.53-.88V7.5c0-.38.21-.71.53-.88l7.97-4.41c.3-.17.66-.17.96 0l7.97 4.41c.32.17.53.5.53.88v9z"/></svg>',
-                windows: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 11.52L10.3 10.42V3.41L3 4.4V11.52ZM10.3 12.55V19.49L3 18.5V13.52L10.3 12.55ZM11.39 10.26L21 8.87V3L11.39 4.38V10.26ZM21 12.72L11.39 11.45V18.15L21 19.5V12.72Z"/></svg>'
-            };
-            return icons[os] || '❓';
-        }
-
-        function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
-        function logout() { fetch('/auth/logout', { method: 'POST' }).then(() => window.location.href = "/login.html"); }
-        function showModal(id) {
-            document.getElementById(id).classList.add('show');
-            // Close sidebar on mobile
-            if (window.innerWidth <= 1200) {
-                const sidebar = document.getElementById('sidebar');
-                const overlay = document.getElementById('sidebar-overlay');
-                sidebar.classList.remove('open');
-                overlay.classList.remove('show');
-            }
-        }
-        function closeModal(id) { document.getElementById(id).classList.remove('show'); }
-        function downloadConfig() {
-            const raw = document.getElementById('provisionRaw').innerText;
-            const blob = new Blob([raw], { type: 'text/plain' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            const name = document.getElementById('newUsername').value || 'vpn-config';
-            a.href = url;
-            a.download = `${name}.conf`;
-            a.click();
-            window.URL.revokeObjectURL(url);
-            triggerToast("Downloading configuration file...");
-        }
-
-        function copyProvision() {
-            const raw = document.getElementById('provisionRaw').innerText;
-            navigator.clipboard.writeText(raw).then(() => triggerToast("Identity Vector Copied!"));
-        }
-
-        init();
-
-        /** 2FA & SETTINGS **/
-        let tfaSecret = null;
-        async function setup2FA() {
-            const res = await fetch('/auth/2fa/setup', {
-                method: 'POST'
-            });
-            const data = await res.json();
-            if (data.qr_code) {
-                tfaSecret = data.secret;
-                document.getElementById('2fa-qr').innerHTML = `<img src="${data.qr_code}" style="width:100%">`;
-                document.getElementById('2fa-setup-area').style.display = 'block';
-                document.getElementById('btn-setup-2fa').style.display = 'none';
-            }
-        }
-
-        function update2FAUI(enabled) {
-            const badge = document.getElementById('2fa-badge');
-            const text = document.getElementById('2fa-status-text');
-            const btnSetup = document.getElementById('btn-setup-2fa');
-            const btnRemove = document.getElementById('btn-remove-2fa');
-            const area = document.getElementById('2fa-setup-area');
-
-            if (enabled) {
-                badge.innerText = "Verified";
-                badge.style.background = "rgba(16, 185, 129, 0.15)";
-                badge.style.color = "var(--success)";
-                text.innerText = "Your account is protected with hardware-grade two-factor authentication.";
-                btnSetup.style.display = 'none';
-                btnRemove.style.display = 'flex';
-                area.style.display = 'none';
-            } else {
-                badge.innerText = "Not Configured";
-                badge.style.background = "rgba(239, 68, 68, 0.15)";
-                badge.style.color = "var(--error)";
-                text.innerText = "MFA is currently disabled. We strongly recommend enabling it to secure your console.";
-                btnSetup.style.display = 'block';
-                btnRemove.style.display = 'none';
-                area.style.display = 'none';
-            }
-        }
-
-        async function verify2FASetup() {
-            const code = document.getElementById('verifyCode').value;
-            if (code.length !== 6) return triggerToast("Please enter the 6-digit code.");
-
-            const res = await fetch('/auth/2fa/verify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ secret: tfaSecret, code })
-            });
-            if (res.ok) {
-                triggerToast("2FA Enabled Successfully");
-                update2FAUI(true);
-            } else {
-                triggerToast("Invalid Verification Code");
-            }
-        }
-
-        function confirmRemoveMFA() {
-            showConfirm(
-                'Disable Two-Factor Authentication?',
-                'You will no longer be protected by MFA. You can reconfigure it anytime.',
-                async () => {
-                    const password = prompt('Enter your password to confirm:');
-                    if (!password) return;
-
-                    const res = await fetch('/auth/2fa/disable', {
-                        method: 'POST',
-                        body: new URLSearchParams({ password }),
-                        credentials: 'include'
+                    loadNodes();
+                    triggerToast(`Identity <b class="alert-name">${name}</b> Injected Successfully`);
+                } else {
+                    const err = await res.json();
+                    triggerPremiumModal({
+                        title: "Provision Error",
+                        body: err.detail || "The system encountered a logic error during deployment.",
+                        type: "danger",
+                        btnText: "Dismiss"
                     });
-
-                    if (res.ok) {
-                        triggerToast('MFA Disabled Successfully');
-                        update2FAUI(false);
-                    } else {
-                        const err = await res.json();
-                        triggerToast(err.detail || 'Failed to disable MFA');
-                    }
                 }
-            );
-        }
-
-        async function changePassword() {
-            const current_password = document.getElementById('currentPass').value;
-            const new_password = document.getElementById('newPass').value;
-            const res = await fetch('/auth/password', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ current_password, new_password })
-            });
-            if (res.ok) {
-                triggerToast("Password Updated");
-                closeModal('settingsModal');
-            } else {
-                const err = await res.json();
-                triggerToast(err.detail || "Update Failed");
             }
-        }
 
-        /** BLACKLIST MANAGEMENT **/
-        let currentBlacklist = [];
+            async function toggleNode(name, currentStatus) {
+                triggerPremiumModal({
+                    title: `${currentStatus === 'active' ? 'Disable' : 'Enable'} Access?`,
+                    body: `Are you sure you want to ${currentStatus === 'active' ? 'suspend' : 'restore'} mesh access for ${name}?`,
+                    btnText: currentStatus === 'active' ? 'Disable' : 'Enable',
+                    type: currentStatus === 'active' ? 'danger' : 'success',
+                    onConfirm: async () => {
+                        if (isProcessing) return;
+                        isProcessing = true;
+                        try {
+                            const res = await fetch(`/api/users/${name}/toggle`, { method: 'PATCH' });
+                            if (res.ok) {
+                                loadNodes();
+                                triggerToast(`Access for <b class="alert-name">${name}</b> updated.`);
+                            }
+                        } finally {
+                            isProcessing = false;
+                        }
+                    }
+                });
+            }
 
-        async function fetchBlacklist() {
-            try {
-                const res = await fetch('/api/alerts/blacklist');
+            async function revokeNode(name) {
+                triggerPremiumModal({
+                    title: "Revoke Access?",
+                    body: `This will permanently disconnect ${name} and invalidate their current configuration.`,
+                    type: "danger",
+                    btnText: "Confirm Revocation",
+                    onConfirm: async () => {
+                        if (isProcessing) return;
+                        isProcessing = true;
+                        try {
+                            const res = await fetch(`/api/users/${name}`, { method: 'DELETE' });
+                            if (res.ok) {
+                                loadNodes();
+                                triggerToast(`Node <b class="alert-name">${name}</b> Revoked from Mesh.`);
+                            }
+                        } finally {
+                            isProcessing = false;
+                        }
+                    }
+                });
+            }
+
+            let isProcessing = false;
+            async function getNodeConfig(name) {
+                if (isProcessing) return;
+                isProcessing = true;
+                try {
+                    const res = await fetch(`/api/users/${name}/config`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        spawnInjectedIdentity(data.qr_code, data.client_config, name);
+                        if (data.recreated) {
+                            triggerToast("First-time config cached successfully.");
+                        }
+                    }
+                } finally {
+                    isProcessing = false;
+                }
+            }
+
+            async function rotateKeys(name) {
+                triggerPremiumModal({
+                    title: "Rotate Security Keys?",
+                    body: `DANGER: This will permanently INVALIDATE the current config for ${name}. Any connected devices will be kicked off immediately and will REQUIRE a new config file.`,
+                    btnText: "Rotate Now",
+                    type: "danger",
+                    onConfirm: async () => {
+                        if (isProcessing) return;
+                        isProcessing = true;
+                        try {
+                            const res = await fetch(`/api/users/${name}/rotate`, { method: 'POST' });
+                            if (res.ok) {
+                                triggerToast("Keys rotated. Peer must re-import.");
+                                getNodeConfig(name); // Show new config automatically
+                            }
+                        } finally {
+                            isProcessing = false;
+                        }
+                    }
+                });
+            }
+
+            function spawnInjectedIdentity(qr, raw, name) {
+                document.getElementById('provisionQr').src = qr;
+                document.getElementById('provisionRaw').innerText = raw;
+                showModal('successModal');
+            }
+
+            function triggerToast(msg) {
+                const t = document.getElementById('toast');
+                t.innerHTML = msg;
+                t.style.display = 'block';
+                setTimeout(() => t.style.display = 'none', 4000);
+            }
+
+            function formatBytes(b) {
+                if (!b || b === 0) return '0 B';
+                const k = 1024;
+                const labels = ['B', 'KB', 'MB', 'GB', 'TB'];
+                const i = Math.floor(Math.log(b) / Math.log(k));
+                return parseFloat((b / Math.pow(k, i)).toFixed(2)) + ' ' + labels[i];
+            }
+
+            function getOSIconIcon(os) {
+                const icons = {
+                    android: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.3414c-.5511 0-.9978-.4467-.9978-.9978 0-.5511.4467-.9978.9978-.9978.5511 0 .9978.4467.9978.9978 0 .5511-.4467.9978-.9978.9978zm-11.046 0c-.5511 0-.9978-.4467-.9978-.9978 0-.5511.4467-.9978.9978-.9978s.9978.4467.9978.9978c0 .5511-.4467.9978-.9978.9978zm11.4045-6.021l1.9973-3.4592c.1197-.2071.0487-.4721-.1585-.5917-.207-.1196-.472-.0486-.5917.1585l-2.0198 3.4983c-1.2936-.59-2.7303-.9257-4.2464-.9257-1.5161 0-2.9528.3357-4.2464.9257l-2.0198-3.4983c-.1197-.2071-.3847-.2781-.5917-.1585-.2071.1196-.2782.3846-.1585.5917l1.9973 3.4592c-3.1311 1.7088-5.3228 4.8872-5.7148 8.6536h19.1026c-.392-3.7664-2.5837-6.9448-5.7148-8.6536z"/></svg>',
+                    ios: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.96.95-2.04 1.72-3.24 1.72-1.16 0-1.54-.72-2.92-.72s-1.84.72-2.92.72c-1.11 0-2.31-.83-3.28-1.81-1.92-1.93-3.4-5.48-3.4-8.6 0-3.3 1.83-5.07 3.63-5.07 1.14 0 1.9.64 2.8.64s1.72-.64 3.03-.64c1.11 0 2.27.42 3.1 1.4-.24.16-1.81 1.1-1.81 3.25 0 2.65 2.19 3.6 2.19 3.6-.04.14-.33.88-.88 1.51zm-5.05-15.11c.91-1.12.75-2.61.75-2.61-.41.02-1.94.31-2.86 1.41-.9 1.04-.76 2.53-.76 2.53.4.03 1.95-.21 2.87-1.33z"/></svg>',
+                    linux: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 16.5c0 .38-.21.71-.53.88l-7.97 4.41c-.3.17-.66.17-.96 0l-7.97-4.41c-.32-.17-.53-.5-.53-.88V7.5c0-.38.21-.71.53-.88l7.97-4.41c.3-.17.66-.17.96 0l7.97 4.41c.32.17.53.5.53.88v9z"/></svg>',
+                    windows: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 11.52L10.3 10.42V3.41L3 4.4V11.52ZM10.3 12.55V19.49L3 18.5V13.52L10.3 12.55ZM11.39 10.26L21 8.87V3L11.39 4.38V10.26ZM21 12.72L11.39 11.45V18.15L21 19.5V12.72Z"/></svg>'
+                };
+                return icons[os] || '❓';
+            }
+
+            function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+            function logout() { fetch('/auth/logout', { method: 'POST' }).then(() => window.location.href = "/login.html"); }
+            function showModal(id) {
+                document.getElementById(id).classList.add('show');
+                // Close sidebar on mobile
+                if (window.innerWidth <= 1200) {
+                    const sidebar = document.getElementById('sidebar');
+                    const overlay = document.getElementById('sidebar-overlay');
+                    sidebar.classList.remove('open');
+                    overlay.classList.remove('show');
+                }
+            }
+            function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+            function downloadConfig() {
+                const raw = document.getElementById('provisionRaw').innerText;
+                const blob = new Blob([raw], { type: 'text/plain' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const name = document.getElementById('newUsername').value || 'vpn-config';
+                a.href = url;
+                a.download = `${name}.conf`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+                triggerToast("Downloading configuration file...");
+            }
+
+            function copyProvision() {
+                const raw = document.getElementById('provisionRaw').innerText;
+                navigator.clipboard.writeText(raw).then(() => triggerToast("Identity Vector Copied!"));
+            }
+
+            init();
+
+            /** 2FA & SETTINGS **/
+            let tfaSecret = null;
+            async function setup2FA() {
+                const res = await fetch('/auth/2fa/setup', {
+                    method: 'POST'
+                });
                 const data = await res.json();
+                if (data.qr_code) {
+                    tfaSecret = data.secret;
+                    document.getElementById('2fa-qr').innerHTML = `<img src="${data.qr_code}" style="width:100%">`;
+                    document.getElementById('2fa-setup-area').style.display = 'block';
+                    document.getElementById('btn-setup-2fa').style.display = 'none';
+                }
+            }
 
+            function update2FAUI(enabled) {
+                const badge = document.getElementById('2fa-badge');
+                const text = document.getElementById('2fa-status-text');
+                const btnSetup = document.getElementById('btn-setup-2fa');
+                const btnRemove = document.getElementById('btn-remove-2fa');
+                const area = document.getElementById('2fa-setup-area');
+
+                if (enabled) {
+                    badge.innerText = "Verified";
+                    badge.style.background = "rgba(16, 185, 129, 0.15)";
+                    badge.style.color = "var(--success)";
+                    text.innerText = "Your account is protected with hardware-grade two-factor authentication.";
+                    btnSetup.style.display = 'none';
+                    btnRemove.style.display = 'flex';
+                    area.style.display = 'none';
+                } else {
+                    badge.innerText = "Not Configured";
+                    badge.style.background = "rgba(239, 68, 68, 0.15)";
+                    badge.style.color = "var(--error)";
+                    text.innerText = "MFA is currently disabled. We strongly recommend enabling it to secure your console.";
+                    btnSetup.style.display = 'block';
+                    btnRemove.style.display = 'none';
+                    area.style.display = 'none';
+                }
+            }
+
+            async function verify2FASetup() {
+                const code = document.getElementById('verifyCode').value;
+                if (code.length !== 6) return triggerToast("Please enter the 6-digit code.");
+
+                const res = await fetch('/auth/2fa/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ secret: tfaSecret, code })
+                });
+                if (res.ok) {
+                    triggerToast("2FA Enabled Successfully");
+                    update2FAUI(true);
+                } else {
+                    triggerToast("Invalid Verification Code");
+                }
+            }
+
+            function confirmRemoveMFA() {
+                showConfirm(
+                    'Disable Two-Factor Authentication?',
+                    'You will no longer be protected by MFA. You can reconfigure it anytime.',
+                    async () => {
+                        const password = prompt('Enter your password to confirm:');
+                        if (!password) return;
+
+                        const res = await fetch('/auth/2fa/disable', {
+                            method: 'POST',
+                            body: new URLSearchParams({ password }),
+                            credentials: 'include'
+                        });
+
+                        if (res.ok) {
+                            triggerToast('MFA Disabled Successfully');
+                            update2FAUI(false);
+                        } else {
+                            const err = await res.json();
+                            triggerToast(err.detail || 'Failed to disable MFA');
+                        }
+                    }
+                );
+            }
+
+            async function changePassword() {
+                const current_password = document.getElementById('currentPass').value;
+                const new_password = document.getElementById('newPass').value;
+                const res = await fetch('/auth/password', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ current_password, new_password })
+                });
+                if (res.ok) {
+                    triggerToast("Password Updated");
+                    closeModal('settingsModal');
+                } else {
+                    const err = await res.json();
+                    triggerToast(err.detail || "Update Failed");
+                }
+            }
+
+            /** BLACKLIST MANAGEMENT **/
+            let currentBlacklist = [];
+
+            async function fetchBlacklist() {
+                try {
+                    const res = await fetch('/api/alerts/blacklist');
+                    const data = await res.json();
+
+                    const tbody = document.getElementById('blacklistTableBody');
+                    const bulkBtn = document.getElementById('btnBulkDelete');
+                    const selectAll = document.getElementById('selectAllDomains');
+
+                    bulkBtn.style.display = 'none';
+                    if (selectAll) selectAll.checked = false;
+
+                    if (!res.ok) {
+                        tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:60px; color:var(--error); font-weight:600;">Failed to load: ${data.detail || 'Unknown Error'}</td></tr>`;
+                        return;
+                    }
+
+                    currentBlacklist = data.domains || [];
+                    renderBlacklist(currentBlacklist);
+                } catch (e) {
+                    console.error("Failed to fetch blacklist:", e);
+                    document.getElementById('blacklistTableBody').innerHTML = '<tr><td colspan="3" style="text-align:center; padding:60px; color:var(--error); font-weight:600;">Connection Error: Server might be restarting</td></tr>';
+                }
+            }
+
+            function renderBlacklist(domains) {
                 const tbody = document.getElementById('blacklistTableBody');
-                const bulkBtn = document.getElementById('btnBulkDelete');
-                const selectAll = document.getElementById('selectAllDomains');
-
-                bulkBtn.style.display = 'none';
-                if (selectAll) selectAll.checked = false;
-
-                if (!res.ok) {
-                    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:60px; color:var(--error); font-weight:600;">Failed to load: ${data.detail || 'Unknown Error'}</td></tr>`;
+                if (domains.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:60px; color:var(--text-dim); font-style:italic;">No restricted domains found.</td></tr>';
                     return;
                 }
-
-                currentBlacklist = data.domains || [];
-                renderBlacklist(currentBlacklist);
-            } catch (e) {
-                console.error("Failed to fetch blacklist:", e);
-                document.getElementById('blacklistTableBody').innerHTML = '<tr><td colspan="3" style="text-align:center; padding:60px; color:var(--error); font-weight:600;">Connection Error: Server might be restarting</td></tr>';
-            }
-        }
-
-        function renderBlacklist(domains) {
-            const tbody = document.getElementById('blacklistTableBody');
-            if (domains.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:60px; color:var(--text-dim); font-style:italic;">No restricted domains found.</td></tr>';
-                return;
-            }
-            tbody.innerHTML = domains.map(d => `
+                tbody.innerHTML = domains.map(d => `
                 <tr style="border-bottom: 1px solid rgba(255,255,255,0.03); transition: 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
                     <td style="padding: 14px 16px; text-align: center;">
                         <label class="custom-checkbox">
@@ -2797,194 +2846,194 @@
                     </td>
                 </tr>
             `).join('');
-        }
-
-        function filterBlacklist() {
-            const query = document.getElementById('searchBlacklist').value.toLowerCase();
-            const filtered = currentBlacklist.filter(d => d.toLowerCase().includes(query));
-            renderBlacklist(filtered);
-        }
-
-        function toggleSelectAllDomains(el) {
-            document.querySelectorAll('.domain-checkbox').forEach(cb => cb.checked = el.checked);
-            updateBulkDeleteVisibility();
-        }
-
-        function updateBulkDeleteVisibility() {
-            const selected = document.querySelectorAll('.domain-checkbox:checked').length;
-            document.getElementById('btnBulkDelete').style.display = selected > 0 ? 'block' : 'none';
-        }
-
-        async function addToBlacklist(btn) {
-            const textarea = document.getElementById('newDomains');
-            const domains = textarea.value.split('\n').map(d => d.trim()).filter(d => d);
-            if (domains.length === 0) return;
-
-            const originalText = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = 'Restricting...';
-
-            try {
-                const res = await fetch('/api/alerts/blacklist', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ domains })
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    textarea.value = '';
-                    triggerToast(`Successfully restricted ${domains.length} domains.`);
-                    fetchBlacklist();
-                } else {
-                    const detail = typeof data.detail === 'object' ? JSON.stringify(data.detail) : data.detail;
-                    triggerToast(detail || "Restriction failed");
-                }
-            } catch (e) {
-                console.error("Blacklist error:", e);
-                triggerToast("Connection error: " + e.message);
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = originalText;
             }
-        }
 
-        async function bulkDeleteBlacklist() {
-            const selected = Array.from(document.querySelectorAll('.domain-checkbox:checked')).map(cb => cb.value);
-            if (selected.length === 0) return;
+            function filterBlacklist() {
+                const query = document.getElementById('searchBlacklist').value.toLowerCase();
+                const filtered = currentBlacklist.filter(d => d.toLowerCase().includes(query));
+                renderBlacklist(filtered);
+            }
 
-            showConfirm(`Remove restriction for <b style="color:var(--error)">${selected.length}</b> selected domains?`, async () => {
+            function toggleSelectAllDomains(el) {
+                document.querySelectorAll('.domain-checkbox').forEach(cb => cb.checked = el.checked);
+                updateBulkDeleteVisibility();
+            }
+
+            function updateBulkDeleteVisibility() {
+                const selected = document.querySelectorAll('.domain-checkbox:checked').length;
+                document.getElementById('btnBulkDelete').style.display = selected > 0 ? 'block' : 'none';
+            }
+
+            async function addToBlacklist(btn) {
+                const textarea = document.getElementById('newDomains');
+                const domains = textarea.value.split('\n').map(d => d.trim()).filter(d => d);
+                if (domains.length === 0) return;
+
+                const originalText = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = 'Restricting...';
+
                 try {
-                    const res = await fetch('/api/alerts/blacklist/delete', {
+                    const res = await fetch('/api/alerts/blacklist', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ domains: selected })
+                        body: JSON.stringify({ domains })
                     });
+                    const data = await res.json();
                     if (res.ok) {
-                        triggerToast(`Successfully unblocked ${selected.length} domains.`);
+                        textarea.value = '';
+                        triggerToast(`Successfully restricted ${domains.length} domains.`);
                         fetchBlacklist();
+                    } else {
+                        const detail = typeof data.detail === 'object' ? JSON.stringify(data.detail) : data.detail;
+                        triggerToast(detail || "Restriction failed");
                     }
                 } catch (e) {
-                    triggerToast("Bulk deletion failed");
-                }
-            });
-        }
-
-        async function deleteBlacklist(domain, btn) {
-            showConfirm(`Remove restriction for <b style="color:var(--error)">${domain}</b>?`, async () => {
-                btn.style.opacity = '0.5';
-                btn.style.pointerEvents = 'none';
-
-                try {
-                    const res = await fetch(`/api/alerts/blacklist/${domain}`, {
-                        method: 'DELETE'
-                    });
-                    if (res.ok) {
-                        triggerToast(`Restriction removed for <b class="alert-name">${domain}</b>.`);
-                        fetchBlacklist();
-                    }
+                    console.error("Blacklist error:", e);
+                    triggerToast("Connection error: " + e.message);
                 } finally {
-                    btn.style.opacity = '1';
-                    btn.style.pointerEvents = 'auto';
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
                 }
-            });
-        }
+            }
 
-        function showConfirm(message, onConfirm) {
-            const modal = document.getElementById('customModal');
-            const title = document.getElementById('modalTitle');
-            const text = document.getElementById('modalText');
-            const icon = document.getElementById('modalIcon');
-            const footer = document.getElementById('modalFooter');
+            async function bulkDeleteBlacklist() {
+                const selected = Array.from(document.querySelectorAll('.domain-checkbox:checked')).map(cb => cb.value);
+                if (selected.length === 0) return;
 
-            title.innerText = "Confirm Action";
-            text.innerHTML = message;
-            icon.innerHTML = `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--error)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+                showConfirm(`Remove restriction for <b style="color:var(--error)">${selected.length}</b> selected domains?`, async () => {
+                    try {
+                        const res = await fetch('/api/alerts/blacklist/delete', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ domains: selected })
+                        });
+                        if (res.ok) {
+                            triggerToast(`Successfully unblocked ${selected.length} domains.`);
+                            fetchBlacklist();
+                        }
+                    } catch (e) {
+                        triggerToast("Bulk deletion failed");
+                    }
+                });
+            }
 
-            footer.innerHTML = `
+            async function deleteBlacklist(domain, btn) {
+                showConfirm(`Remove restriction for <b style="color:var(--error)">${domain}</b>?`, async () => {
+                    btn.style.opacity = '0.5';
+                    btn.style.pointerEvents = 'none';
+
+                    try {
+                        const res = await fetch(`/api/alerts/blacklist/${domain}`, {
+                            method: 'DELETE'
+                        });
+                        if (res.ok) {
+                            triggerToast(`Restriction removed for <b class="alert-name">${domain}</b>.`);
+                            fetchBlacklist();
+                        }
+                    } finally {
+                        btn.style.opacity = '1';
+                        btn.style.pointerEvents = 'auto';
+                    }
+                });
+            }
+
+            function showConfirm(message, onConfirm) {
+                const modal = document.getElementById('customModal');
+                const title = document.getElementById('modalTitle');
+                const text = document.getElementById('modalText');
+                const icon = document.getElementById('modalIcon');
+                const footer = document.getElementById('modalFooter');
+
+                title.innerText = "Confirm Action";
+                text.innerHTML = message;
+                icon.innerHTML = `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--error)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+
+                footer.innerHTML = `
                 <button class="btn-secondary" onclick="closeModal('customModal')" style="flex:1">Cancel</button>
                 <button class="btn-create" id="confirmBtn" style="flex:1; background:var(--error)">Confirm</button>
             `;
 
-            document.getElementById('confirmBtn').onclick = () => {
-                onConfirm();
-                closeModal('customModal');
-            };
+                document.getElementById('confirmBtn').onclick = () => {
+                    onConfirm();
+                    closeModal('customModal');
+                };
 
-            showModal('customModal');
-        }
-
-        async function testBlocking() {
-            const resultEl = document.getElementById('testResult');
-            resultEl.innerText = 'Testing...';
-            resultEl.style.color = 'var(--text-dim)';
-
-            try {
-                const res = await fetch('/api/alerts/test-blocking');
-                const data = await res.json();
-
-                if (res.ok) {
-                    if (data.status === 'WORKING') {
-                        resultEl.innerHTML = `✅ <b style="color:var(--success)">WORKING</b> - ${data.json_file.domains} domains blocked`;
-                    } else if (data.status && data.status.includes('EMPTY')) {
-                        resultEl.innerHTML = `⚠️ <b style="color:var(--warning)">EMPTY</b> - No domains in blacklist. Add some!`;
-                    } else {
-                        const status = typeof data.status === 'object' ? JSON.stringify(data.status) : data.status;
-                        resultEl.innerHTML = `❌ <b style="color:var(--error)">${status || 'Unknown Error'}</b>`;
-                    }
-                } else {
-                    const detail = typeof data.detail === 'object' ? JSON.stringify(data.detail) : data.detail;
-                    resultEl.innerHTML = `❌ <b style="color:var(--error)">${detail || 'Server Error'}</b>`;
-                }
-            } catch (e) {
-                resultEl.innerHTML = `❌ <b style="color:var(--error)">Connection Error</b>`;
+                showModal('customModal');
             }
-        }
 
-        /** SESSION HISTORY **/
-        function showUserDetails(username, rx, tx) {
-            document.getElementById('detailUsername').innerText = username;
-            document.getElementById('detailRx').innerText = formatBytes(rx);
-            document.getElementById('detailTx').innerText = formatBytes(tx);
-            switchTab('overview');
-            showModal('userDetailsModal');
-        }
+            async function testBlocking() {
+                const resultEl = document.getElementById('testResult');
+                resultEl.innerText = 'Testing...';
+                resultEl.style.color = 'var(--text-dim)';
 
-        function switchTab(tab) {
-            document.querySelectorAll('.tab-btn').forEach(b => {
-                b.classList.remove('active');
-                b.style.color = 'var(--text-dim)';
-                b.style.borderBottom = 'none';
-            });
-            const activeTab = document.getElementById('tab-' + tab);
-            activeTab.classList.add('active');
-            activeTab.style.color = 'white';
-            activeTab.style.borderBottom = '2px solid var(--accent)';
+                try {
+                    const res = await fetch('/api/alerts/test-blocking');
+                    const data = await res.json();
 
-            document.getElementById('view-overview').style.display = tab === 'overview' ? 'block' : 'none';
-            document.getElementById('view-sessions').style.display = tab === 'sessions' ? 'block' : 'none';
-
-            if (tab === 'sessions') fetchSessions();
-        }
-
-        async function fetchSessions() {
-            const username = document.getElementById('detailUsername').innerText;
-            const tbody = document.getElementById('sessionTableBody');
-
-            try {
-                const res = await fetch(`/api/users/${username}/sessions`);
-                if (!res.ok) {
-                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-dim); padding: 40px;">Failed to load sessions</td></tr>';
-                    return;
+                    if (res.ok) {
+                        if (data.status === 'WORKING') {
+                            resultEl.innerHTML = `✅ <b style="color:var(--success)">WORKING</b> - ${data.json_file.domains} domains blocked`;
+                        } else if (data.status && data.status.includes('EMPTY')) {
+                            resultEl.innerHTML = `⚠️ <b style="color:var(--warning)">EMPTY</b> - No domains in blacklist. Add some!`;
+                        } else {
+                            const status = typeof data.status === 'object' ? JSON.stringify(data.status) : data.status;
+                            resultEl.innerHTML = `❌ <b style="color:var(--error)">${status || 'Unknown Error'}</b>`;
+                        }
+                    } else {
+                        const detail = typeof data.detail === 'object' ? JSON.stringify(data.detail) : data.detail;
+                        resultEl.innerHTML = `❌ <b style="color:var(--error)">${detail || 'Server Error'}</b>`;
+                    }
+                } catch (e) {
+                    resultEl.innerHTML = `❌ <b style="color:var(--error)">Connection Error</b>`;
                 }
+            }
 
-                const data = await res.json();
+            /** SESSION HISTORY **/
+            function showUserDetails(username, rx, tx) {
+                document.getElementById('detailUsername').innerText = username;
+                document.getElementById('detailRx').innerText = formatBytes(rx);
+                document.getElementById('detailTx').innerText = formatBytes(tx);
+                switchTab('overview');
+                showModal('userDetailsModal');
+            }
 
-                if (!data.sessions || data.sessions.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-dim); padding: 40px;">No session history recorded yet. Sessions are logged when users connect/disconnect.</td></tr>';
-                    return;
-                }
+            function switchTab(tab) {
+                document.querySelectorAll('.tab-btn').forEach(b => {
+                    b.classList.remove('active');
+                    b.style.color = 'var(--text-dim)';
+                    b.style.borderBottom = 'none';
+                });
+                const activeTab = document.getElementById('tab-' + tab);
+                activeTab.classList.add('active');
+                activeTab.style.color = 'white';
+                activeTab.style.borderBottom = '2px solid var(--accent)';
 
-                tbody.innerHTML = data.sessions.map(s => `
+                document.getElementById('view-overview').style.display = tab === 'overview' ? 'block' : 'none';
+                document.getElementById('view-sessions').style.display = tab === 'sessions' ? 'block' : 'none';
+
+                if (tab === 'sessions') fetchSessions();
+            }
+
+            async function fetchSessions() {
+                const username = document.getElementById('detailUsername').innerText;
+                const tbody = document.getElementById('sessionTableBody');
+
+                try {
+                    const res = await fetch(`/api/users/${username}/sessions`);
+                    if (!res.ok) {
+                        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-dim); padding: 40px;">Failed to load sessions</td></tr>';
+                        return;
+                    }
+
+                    const data = await res.json();
+
+                    if (!data.sessions || data.sessions.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-dim); padding: 40px;">No session history recorded yet. Sessions are logged when users connect/disconnect.</td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = data.sessions.map(s => `
                     <tr>
                         <td style="color: white; font-weight: 600;">${new Date(s.start_time).toLocaleString()}</td>
                         <td style="color: var(--text-dim);">${s.duration}</td>
@@ -2996,11 +3045,11 @@
                         </td>
                     </tr>
                 `).join('');
-            } catch (err) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--error); padding: 40px;">Error loading sessions: ' + err.message + '</td></tr>';
+                } catch (err) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--error); padding: 40px;">Error loading sessions: ' + err.message + '</td></tr>';
+                }
             }
-        }
-    </script>
+        </script>
 </body>
 
 </html>

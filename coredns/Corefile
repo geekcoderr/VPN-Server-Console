@@ -1,10 +1,14 @@
 . {
-    # Reload hosts file every 5 seconds to pick up changes
+    # Reload hosts file every 1 second for instant blocking
     hosts /etc/coredns/blocked.hosts {
         fallthrough
-        reload 5s
-        ttl 5
+        reload 1s
+        ttl 1
     }
+    
+    # Import wildcard blocking rules
+    import /etc/coredns/wildcards.conf
+
     forward . 8.8.8.8 1.1.1.1
     log
     errors

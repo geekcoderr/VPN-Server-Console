@@ -72,7 +72,7 @@ def init_firewall_chains():
         run_iptables(mss_rule)
         print("🛡️  MSS Clamping enabled to prevent MTU-related website hangs.")
 
-    # 3. DNS Enforcement (Military-Grade Hijacking)
+    # 3. DNS Enforcement (Network-Level Hijacking)
     # Force ALL port 53 traffic from VPN interface to our internal CoreDNS
     for proto in ["udp", "tcp"]:
         # Use -I 1 to ensure it's the absolute first rule in PREROUTING
