@@ -1087,7 +1087,7 @@
             }
         }
 
-        /* RESPONSIVE OVERHAUL (v3.3.2) */
+        /* RESPONSIVE OVERHAUL (v4.1.0) */
         .table-container {
             width: 100%;
             overflow-x: auto;
@@ -1100,7 +1100,9 @@
         }
 
         .table-view {
-            min-width: 1100px;
+            width: 100%;
+            min-width: 800px;
+            /* Reduced from 1100px */
         }
 
         .table-container .table-view {
@@ -1122,6 +1124,159 @@
             cursor: pointer;
             color: white;
         }
+
+        /* Sidebar Overlay for Mobile */
+        .sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1050;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .sidebar-overlay.show {
+            display: block;
+            opacity: 1;
+        }
+
+        /* Desktop: Sidebar always visible */
+        @media (min-width: 1201px) {
+            .sidebar {
+                transform: translateX(0) !important;
+            }
+
+            .main-wrapper {
+                margin-left: 280px !important;
+            }
+
+            .menu-toggle {
+                display: none !important;
+            }
+
+            .sidebar-overlay {
+                display: none !important;
+            }
+        }
+
+        /* Tablet: Collapsible sidebar */
+        @media (max-width: 1200px) {
+            .sidebar {
+                transform: translateX(-100%);
+                width: 280px;
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+                box-shadow: 20px 0 50px rgba(0, 0, 0, 0.5);
+            }
+
+            .main-wrapper {
+                margin-left: 0;
+            }
+
+            .navbar {
+                justify-content: space-between;
+                padding: 15px 24px;
+            }
+
+            .menu-toggle {
+                display: flex !important;
+            }
+
+            .container {
+                padding: 24px 16px;
+            }
+
+            .stats-header {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 16px;
+            }
+        }
+
+        /* Mobile: Simplified table */
+        @media (max-width: 900px) {
+            .table-view {
+                min-width: 600px;
+            }
+
+            /* Hide non-essential columns */
+            th:nth-child(5),
+            td:nth-child(5),
+            /* Endpoint */
+            th:nth-child(6),
+            td:nth-child(6),
+            /* Transfer */
+            th:nth-child(7),
+            td:nth-child(7)
+
+            /* Handshake */
+                {
+                display: none;
+            }
+
+            th,
+            td {
+                padding: 16px 12px;
+            }
+
+            .action-tray {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .action-btn {
+                padding: 8px 12px;
+                font-size: 11px;
+                height: 36px;
+            }
+
+            .node-name {
+                font-size: 14px;
+            }
+
+            .status-badge {
+                padding: 4px 10px;
+                font-size: 10px;
+            }
+        }
+
+        /* Small Mobile: Stack stats */
+        @media (max-width: 768px) {
+            .stats-header {
+                grid-template-columns: 1fr;
+            }
+
+            .table-view {
+                min-width: 500px;
+            }
+
+            .console-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 16px;
+            }
+
+            .btn-create {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .modal {
+                padding: 24px 16px;
+                border-radius: 24px;
+                max-width: 95vw;
+            }
+
+            .os-selector {
+                grid-template-columns: 1fr;
+            }
+
+            .acl-selector {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 
@@ -1134,6 +1289,7 @@
     </div>
 
     <div class="app-layout">
+        <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="brand">
@@ -1663,6 +1819,15 @@
                 </div>
                 <button id="btn-setup-2fa" class="btn-create" style="width: 100%; display: none;"
                     onclick="setup2FA()">Configure MFA</button>
+                <button id="btn-remove-2fa" class="btn-danger" style="width: 100%; display: none; margin-top: 12px;"
+                    onclick="confirmRemoveMFA()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                    Remove MFA
+                </button>
             </div>
 
             <!-- Password Change -->
@@ -1769,6 +1934,7 @@
 
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('sidebar-overlay').classList.toggle('show');
         }
 
         function showSection(section) {
@@ -2241,7 +2407,8 @@
         function update2FAUI(enabled) {
             const badge = document.getElementById('2fa-badge');
             const text = document.getElementById('2fa-status-text');
-            const btn = document.getElementById('btn-setup-2fa');
+            const btnSetup = document.getElementById('btn-setup-2fa');
+            const btnRemove = document.getElementById('btn-remove-2fa');
             const area = document.getElementById('2fa-setup-area');
 
             if (enabled) {
@@ -2249,14 +2416,16 @@
                 badge.style.background = "rgba(16, 185, 129, 0.15)";
                 badge.style.color = "var(--success)";
                 text.innerText = "Your account is protected with hardware-grade two-factor authentication.";
-                btn.style.display = 'none';
+                btnSetup.style.display = 'none';
+                btnRemove.style.display = 'flex';
                 area.style.display = 'none';
             } else {
                 badge.innerText = "Not Configured";
                 badge.style.background = "rgba(239, 68, 68, 0.15)";
                 badge.style.color = "var(--error)";
                 text.innerText = "MFA is currently disabled. We strongly recommend enabling it to secure your console.";
-                btn.style.display = 'block';
+                btnSetup.style.display = 'block';
+                btnRemove.style.display = 'none';
                 area.style.display = 'none';
             }
         }
@@ -2276,6 +2445,31 @@
             } else {
                 triggerToast("Invalid Verification Code");
             }
+        }
+
+        function confirmRemoveMFA() {
+            showConfirm(
+                'Disable Two-Factor Authentication?',
+                'You will no longer be protected by MFA. You can reconfigure it anytime.',
+                async () => {
+                    const password = prompt('Enter your password to confirm:');
+                    if (!password) return;
+
+                    const res = await fetch('/auth/2fa/disable', {
+                        method: 'POST',
+                        body: new URLSearchParams({ password }),
+                        credentials: 'include'
+                    });
+
+                    if (res.ok) {
+                        triggerToast('MFA Disabled Successfully');
+                        update2FAUI(false);
+                    } else {
+                        const err = await res.json();
+                        triggerToast(err.detail || 'Failed to disable MFA');
+                    }
+                }
+            );
         }
 
         async function changePassword() {
