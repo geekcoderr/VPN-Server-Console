@@ -1547,13 +1547,13 @@
                     <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
             </button>
-            <div id="modalIcon"
-                style="width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
+            <div id="modalIcon" style="margin-bottom: 24px;">
                 <!-- Vector injected here -->
             </div>
-            <h3 id="modalTitle" style="font-size: 24px; margin-bottom: 12px;">Confirm Action</h3>
-            <p id="modalBody" style="color: var(--text-dim); font-size: 15px; margin-bottom: 32px;"></p>
-            <div class="modal-buttons">
+            <h3 id="modalTitle" style="font-size: 24px; margin-bottom: 16px;">Confirm Action</h3>
+            <p id="modalText" style="color: var(--text-dim); font-size: 15px; margin-bottom: 32px; line-height: 1.6;">
+            </p>
+            <div id="modalFooter" style="display: flex; gap: 12px;">
                 <button id="modalBtnSecondary" class="btn-modal btn-modal-secondary"
                     onclick="closeModal('customModal')">Cancel</button>
                 <button id="modalBtnPrimary" class="btn-modal btn-modal-primary">Proceed</button>
@@ -2101,7 +2101,13 @@
                     input.value = '';
                     triggerToast(`Domain <b class="alert-name">${domain}</b> restricted.`);
                     fetchBlacklist();
+                } else {
+                    const err = await res.json();
+                    triggerToast(err.detail || "Restriction failed");
                 }
+            } catch (e) {
+                console.error("Blacklist error:", e);
+                triggerToast("Connection error");
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = originalText;
@@ -2109,23 +2115,47 @@
         }
 
         async function deleteBlacklist(domain, btn) {
-            if (!confirm(`Remove restriction for ${domain}?`)) return;
+            showConfirm(`Remove restriction for <b style="color:var(--error)">${domain}</b>?`, async () => {
+                btn.style.opacity = '0.5';
+                btn.style.pointerEvents = 'none';
 
-            btn.style.opacity = '0.5';
-            btn.style.pointerEvents = 'none';
-
-            try {
-                const res = await fetch(`/api/alerts/blacklist/${domain}`, {
-                    method: 'DELETE'
-                });
-                if (res.ok) {
-                    triggerToast(`Restriction removed for <b class="alert-name">${domain}</b>.`);
-                    fetchBlacklist();
+                try {
+                    const res = await fetch(`/api/alerts/blacklist/${domain}`, {
+                        method: 'DELETE'
+                    });
+                    if (res.ok) {
+                        triggerToast(`Restriction removed for <b class="alert-name">${domain}</b>.`);
+                        fetchBlacklist();
+                    }
+                } finally {
+                    btn.style.opacity = '1';
+                    btn.style.pointerEvents = 'auto';
                 }
-            } finally {
-                btn.style.opacity = '1';
-                btn.style.pointerEvents = 'auto';
-            }
+            });
+        }
+
+        function showConfirm(message, onConfirm) {
+            const modal = document.getElementById('customModal');
+            const title = document.getElementById('modalTitle');
+            const text = document.getElementById('modalText');
+            const icon = document.getElementById('modalIcon');
+            const footer = document.getElementById('modalFooter');
+
+            title.innerText = "Confirm Action";
+            text.innerHTML = message;
+            icon.innerHTML = `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--error)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+
+            footer.innerHTML = `
+                <button class="btn-secondary" onclick="closeModal('customModal')" style="flex:1">Cancel</button>
+                <button class="btn-create" id="confirmBtn" style="flex:1; background:var(--error)">Confirm</button>
+            `;
+
+            document.getElementById('confirmBtn').onclick = () => {
+                onConfirm();
+                closeModal('customModal');
+            };
+
+            showModal('customModal');
         }
 
         /** SESSION HISTORY **/
