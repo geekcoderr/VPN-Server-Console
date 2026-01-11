@@ -693,6 +693,33 @@
             color: var(--text-dim);
         }
 
+        /* Compact ACL Selector for Access Levels */
+        .acl-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 16px 0;
+        }
+
+        .acl-selector .os-option {
+            padding: 14px 8px;
+        }
+
+        .acl-selector .os-option svg {
+            width: 24px;
+            height: 24px;
+            margin-bottom: 6px;
+        }
+
+        .acl-selector .os-option span {
+            font-size: 12px;
+            margin-bottom: 2px;
+        }
+
+        .acl-selector .os-option small {
+            font-size: 9px;
+        }
+
         /* Initialization Loading Screen */
         #init-screen {
             position: fixed;
@@ -1288,7 +1315,7 @@
                 <label
                     style="display: block; font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">Access
                     Level</label>
-                <div class="os-selector" id="aclSelector" style="grid-template-columns: repeat(3, 1fr);">
+                <div class="acl-selector" id="aclSelector">
                     <div class="os-option active" onclick="setACL('full', this)">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2.5">
