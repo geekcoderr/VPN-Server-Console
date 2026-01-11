@@ -56,17 +56,47 @@ def _sync_to_hosts(domains: list):
 def _sync_to_wildcards(domains: list):
     """Write wildcard rules to CoreDNS wildcards.conf using template plugin."""
     os.makedirs(os.path.dirname(WILDCARDS_CONF), exist_ok=True)
+    
+    # DoH Canary Domains (Signals browsers to disable DoH)
+    DOH_CANARIES = [
+        "use-application-dns.net", # Firefox
+        "mask.icloud.com",         # iCloud Private Relay
+        "mask-h2.icloud.com"       # iCloud Private Relay
+    ]
+    
+    # Known DoH Provider Domains
+    DOH_PROVIDERS = [
+        "dns.google", "dns.google.com",
+        "cloudflare-dns.com", "1dot1dot1dot1.cloudflare-dns.com",
+        "dns.quad9.net", "doh.opendns.com"
+    ]
+
     with open(WILDCARDS_CONF, "w") as f:
         f.write("# CoreDNS Wildcard Rules - AUTO-GENERATED\n\n")
+        
+        # 1. Block DoH Canaries with NXDOMAIN (Strict Anti-Bypass)
+        f.write("# DoH Canary Domains (Signal browsers to disable DoH)\n")
+        for canary in DOH_CANARIES:
+            f.write(f"template ANY ANY {canary} {{\n")
+            f.write("    nxdomain\n")
+            f.write("}\n\n")
+
+        # 2. Block DoH Providers
+        f.write("# Known DoH Provider Domains\n")
+        for provider in DOH_PROVIDERS:
+            f.write(f"template ANY ANY {provider} {{\n")
+            f.write(f"    answer \"{{{{ .Name }}}} 1 IN A 0.0.0.0\"\n")
+            f.write("}\n\n")
+
+        # 3. Block User Domains
+        f.write("# User Blacklisted Domains\n")
         for domain in domains:
             d = domain.strip().lower()
-            if d:
-                # Use template plugin to block the domain and all subdomains
-                # This matches d and *.d
+            if d and d not in DOH_CANARIES and d not in DOH_PROVIDERS:
                 f.write(f"template ANY ANY {d} {{\n")
                 f.write(f"    answer \"{{{{ .Name }}}} 1 IN A 0.0.0.0\"\n")
                 f.write("}\n\n")
-    print(f"🌐 Wildcard rules synced: {len(domains)} domains")
+    print(f"🌐 Wildcard rules synced: {len(domains)} user domains + DoH protection")
 
 def _reload_coredns():
     """Signal CoreDNS to reload configuration for instant blocking."""

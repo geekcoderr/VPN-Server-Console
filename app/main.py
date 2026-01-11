@@ -41,9 +41,11 @@ async def lifespan(app: FastAPI):
         await ensure_admin_exists()
         
         # Sync Blacklist to CoreDNS (v4.0 - file-based)
-        from .alerts import _load_blacklist, _sync_to_hosts
+        from .alerts import _load_blacklist, _sync_to_hosts, _sync_to_wildcards, _reload_coredns
         domains = _load_blacklist()
         _sync_to_hosts(domains)
+        _sync_to_wildcards(domains)
+        _reload_coredns()
         
         # Critical: Enforce Kernel State Sync
         from .wg import sync_wireguard_state
@@ -134,7 +136,7 @@ async def broadcast_metrics():
 
 app = FastAPI(
     title="GeekSTunnel Premium Console",
-    version="4.0.0",
+    version="4.3.8",
     lifespan=lifespan
 )
 

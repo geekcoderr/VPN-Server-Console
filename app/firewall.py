@@ -98,6 +98,17 @@ def init_firewall_chains():
     for proto in ["udp", "tcp"]:
         run_ip6tables(["-I", "FORWARD", "1", "-i", WG_INTERFACE, "-p", proto, "--dport", "53", "-j", "DROP"])
 
+    # 6. Block Known DoH Provider IPs (Anti-Bypass)
+    # Blocking port 443 to these IPs forces browsers to fall back to standard DNS
+    DOH_IPS = [
+        "8.8.8.8", "8.8.4.4",    # Google
+        "1.1.1.1", "1.0.0.1",    # Cloudflare
+        "9.9.9.9", "149.112.112.112" # Quad9
+    ]
+    for ip in DOH_IPS:
+        run_iptables(["-I", "FORWARD", "1", "-i", WG_INTERFACE, "-d", ip, "-p", "tcp", "--dport", "443", "-j", "REJECT"])
+        run_iptables(["-I", "FORWARD", "1", "-i", WG_INTERFACE, "-d", ip, "-p", "udp", "--dport", "443", "-j", "REJECT"])
+
 def apply_acl(ip: str, profile: str):
     """
     Apply ACL rules for a specific User IP.
