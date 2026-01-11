@@ -300,7 +300,7 @@
         /* Real-time Stats Header */
         .stats-header {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
             gap: 24px;
             margin-bottom: 56px;
         }
@@ -1145,23 +1145,37 @@
             opacity: 1;
         }
 
-        /* Desktop: Sidebar always visible */
+        /* Desktop Sidebar Toggle Logic */
         @media (min-width: 1201px) {
             .sidebar {
-                transform: translateX(0) !important;
+                transform: translateX(0);
+                transition: transform 0.3s ease, width 0.3s ease;
+            }
+
+            .sidebar.collapsed {
+                transform: translateX(-100%);
             }
 
             .main-wrapper {
-                margin-left: 280px !important;
+                margin-left: 280px;
+                transition: margin-left 0.3s ease;
             }
 
+            .main-wrapper.expanded {
+                margin-left: 0;
+            }
+
+            /* Show menu toggle on desktop too */
             .menu-toggle {
-                display: none !important;
+                display: flex !important;
             }
+        }
 
-            .sidebar-overlay {
-                display: none !important;
-            }
+        /* Responsive Stats Grid */
+        .stats-header {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 24px;
         }
 
         .sidebar-close-btn {
@@ -1967,8 +1981,15 @@
         let allUsers = []; // Global store for searching
 
         function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('open');
-            document.getElementById('sidebar-overlay').classList.toggle('show');
+            if (window.innerWidth > 1200) {
+                // Desktop: Toggle collapse
+                document.getElementById('sidebar').classList.toggle('collapsed');
+                document.querySelector('.main-wrapper').classList.toggle('expanded');
+            } else {
+                // Mobile: Toggle overlay
+                document.getElementById('sidebar').classList.toggle('open');
+                document.getElementById('sidebar-overlay').classList.toggle('show');
+            }
         }
 
         function showSection(section) {
