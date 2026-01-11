@@ -1,12 +1,13 @@
 . {
     reload
-    # Block HTTPS (65) and SVCB (64) records to prevent modern browser bypasses (DoH/ECH)
+    # Import dynamically generated blacklist rules
+    import /etc/coredns/blocked.conf
+
+    # Block HTTPS (65) and SVCB (64) records globally to prevent modern browser bypasses
     template ANY HTTPS SVCB {
         rcode NXDOMAIN
     }
-    hosts /etc/coredns/blocked.hosts {
-        fallthrough
-    }
+
     forward . 8.8.8.8 1.1.1.1
     log
     errors
