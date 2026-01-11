@@ -13,6 +13,7 @@ from .config import SESSION_SECRET_KEY, SESSION_MAX_AGE, DEFAULT_ADMIN_USER, DEF
 from .audit import log_admin_login
 from .totp import random_base32, get_provisioning_uri, verify_totp
 from .qr import generate_qr_data_uri
+from .limiter import limiter
 from sqlalchemy import update
 
 router = APIRouter()
@@ -49,6 +50,7 @@ async def ensure_admin_exists():
         await create_admin(DEFAULT_ADMIN_USER, hashed)
 
 @router.post("/login")
+@limiter.limit("5/minute")
 async def login(
     request: Request,
     username: str = Form(...),

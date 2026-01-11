@@ -7,20 +7,22 @@
 ## 🚀 Key Features
 
 ### 🛡️ Security & Hardening
--   **Admin 2FA (TOTP):** Secure the admin console with Time-based One-Time Passwords (Google Authenticator).
+-   **Admin 2FA (TOTP):** Secure the admin console with Time-based One-Time Passwords.
+-   **Rate Limiting:** Protection against brute-force attacks on login endpoints.
+-   **CSRF Protection:** Secure API interactions against cross-site request forgery.
 -   **Fail2Ban Integration:** Automatic IP banning after 3 failed admin login attempts.
 -   **Strict ACLs:** Granular access control (Internet-only, Intranet-only, Full Access).
--   **Persistent Keys:** Private keys are securely stored in the database (MySQL) for consistent user experience.
 
 ### ⚡ High-Performance Architecture
--   **Real-time URL Alerting:** Monitor and alert on restricted site access (e.g., Social Media) with **Zero Latency** using Redis & CoreDNS.
--   **Hybrid Database:** MySQL for core data + Redis for high-speed caching and alert queues.
--   **Async Workers:** Email sending and heavy lifting are decoupled from the main request path.
+-   **Military-Grade DNS Enforcement:** Forced DNS hijacking via iptables DNAT. Blocks DoT, IPv6 DNS, and custom client DNS.
+-   **TCP BBR & Kernel Tuning:** Optimized for high-throughput and low-latency mesh networking.
+-   **Hybrid Database:** MySQL for core data + Redis for high-speed caching.
 
-### 📱 Fluid UI (v3.3.0)
--   **Mobile-First Design:** Fully responsive dashboard that works perfectly on phones, tablets, and desktops.
+### 📱 Premium UI (v4.0.0)
+-   **Collapsible Sidebar:** Streamlined navigation for Dashboard, Settings, and Restricted Domains.
+-   **Real-time Search:** Instant node filtering by name, IP, or endpoint.
+-   **Adaptive Resource Management:** UI automatically enters idle mode when the tab is hidden to save server CPU.
 -   **Glassmorphism Aesthetic:** Modern, dark-mode UI with blur effects and smooth animations.
--   **QR Code Provisioning:** Instant mobile onboarding via QR codes.
 
 ### 🆔 Advanced Onboarding
 -   **Identity Verification:** Invite users via Email.
@@ -34,7 +36,6 @@
 -   Domain name pointing to the server
 
 ### Quick Start (Automated)
-
 ```bash
 # 1. Clone the repository
 git clone https://github.com/geekcoderr/vpn-control.git /opt/vpn-control
@@ -44,12 +45,23 @@ cd /opt/vpn-control
 sudo ./setup.sh
 ```
 
-The setup script will:
--   Install all dependencies (Python, Nginx, Redis, WireGuard, etc.).
--   Configure the database and virtual environment.
--   Set up Nginx with SSL (Let's Encrypt).
--   Install and configure Fail2Ban.
--   Start the systemd services.
+### 🔄 Updating to v4.0.0
+If you are already running an older version, follow these steps to upgrade:
+
+```bash
+cd /opt/vpn-control
+git pull origin main
+
+# 1. Install new security dependencies
+sudo ./venv/bin/pip install -r requirements.txt
+
+# 2. Apply Speed Optimizations (BBR + Kernel Tuning)
+sudo chmod +x optimize_speed.sh
+sudo ./optimize_speed.sh
+
+# 3. Restart services
+sudo systemctl restart vpn-control
+```
 
 ## ⚙️ Configuration
 

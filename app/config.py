@@ -25,7 +25,7 @@ VPN_SERVER_ENDPOINT = "wg.nishantmaheshwari.online:51820"
 
 # Client config defaults
 CLIENT_DNS = VPN_SERVER_IP
-CLIENT_MTU = 1280
+CLIENT_MTU = 1420
 PERSISTENT_KEEPALIVE = 25
 
 # Admin defaults

@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Depends, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Depends, WebSocket, WebSocketDisconnect, Request
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
 from datetime import datetime
@@ -9,6 +10,25 @@ from .auth import router as auth_router, ensure_admin_exists, get_current_admin
 from .users import router as users_router
 from .websockets import manager
 from .wg import get_connected_peers
+
+from .limiter import limiter
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from fastapi_csrf_protect import CsrfProtect
+from fastapi_csrf_protect.exceptions import CsrfProtectError
+from fastapi.responses import JSONResponse
+from .config import SESSION_SECRET_KEY
+
+# Rate Limiter
+# (Initialized in .limiter)
+
+class CsrfSettings(BaseModel):
+    secret_key: str = SESSION_SECRET_KEY
+    cookie_samesite: str = "lax"
+
+@CsrfProtect.load_config
+def get_csrf_config():
+    return CsrfSettings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -113,10 +133,19 @@ async def broadcast_metrics():
         await asyncio.sleep(3)
 
 app = FastAPI(
-    title="VPN Control API",
-    version="3.3.1",
+    title="GeekSTunnel Premium Console",
+    version="4.0.0",
     lifespan=lifespan
 )
+
+# Rate Limit Handler
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# CSRF Error Handler
+@app.exception_handler(CsrfProtectError)
+def csrf_protect_exception_handler(request: Request, exc: CsrfProtectError):
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.message})
 
 # CORS configuration
 app.add_middleware(
