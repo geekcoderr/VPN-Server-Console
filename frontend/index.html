@@ -1999,14 +1999,22 @@
                 </div>
             </div>
 
-            <div class="table-view" style="max-height: 300px; overflow-y: auto;">
-                <table>
+            <div class="table-view"
+                style="max-height: 300px; overflow-y: auto; border-radius: 12px; border: 1px solid var(--glass-border);">
+                <table style="width: 100%; border-collapse: collapse;">
                     <thead>
-                        <tr>
-                            <th style="width: 40px;"><input type="checkbox" id="selectAllDomains"
-                                    onclick="toggleSelectAllDomains(this)"></th>
-                            <th>Domain</th>
-                            <th style="text-align: right;">Action</th>
+                        <tr style="background: rgba(255,255,255,0.02);">
+                            <th
+                                style="width: 48px; padding: 16px; text-align: center; border-bottom: 1px solid var(--glass-border);">
+                                <input type="checkbox" id="selectAllDomains" onclick="toggleSelectAllDomains(this)"
+                                    style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent); vertical-align: middle;">
+                            </th>
+                            <th
+                                style="padding: 16px; text-align: left; color: var(--text-dim); font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--glass-border);">
+                                Domain</th>
+                            <th
+                                style="padding: 16px; text-align: right; color: var(--text-dim); font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--glass-border);">
+                                Action</th>
                         </tr>
                     </thead>
                     <tbody id="blacklistTableBody">
@@ -2667,7 +2675,7 @@
             try {
                 const res = await fetch('/api/alerts/blacklist');
                 const data = await res.json();
-                const domains = data.domains || [];
+
                 const tbody = document.getElementById('blacklistTableBody');
                 const bulkBtn = document.getElementById('btnBulkDelete');
                 const selectAll = document.getElementById('selectAllDomains');
@@ -2675,16 +2683,25 @@
                 bulkBtn.style.display = 'none';
                 if (selectAll) selectAll.checked = false;
 
+                if (!res.ok) {
+                    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:40px; color:var(--error);">Failed to load: ${data.detail || 'Unknown Error'}</td></tr>`;
+                    return;
+                }
+
+                const domains = data.domains || [];
                 if (domains.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:40px; color:var(--text-dim);">No restricted domains found.</td></tr>';
                     return;
                 }
                 tbody.innerHTML = domains.map(d => `
-                    <tr>
-                        <td><input type="checkbox" class="domain-checkbox" value="${d}" onclick="updateBulkDeleteVisibility()"></td>
-                        <td style="color: white; font-weight: 600;">${d}</td>
-                        <td style="text-align: right;">
-                            <button onclick="deleteBlacklist('${d}', this)" style="background:none; border:none; color:var(--error); cursor:pointer; transition: 0.3s;">
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                        <td style="padding: 12px 16px; text-align: center;">
+                            <input type="checkbox" class="domain-checkbox" value="${d}" onclick="updateBulkDeleteVisibility()"
+                                style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent);">
+                        </td>
+                        <td style="padding: 12px 16px; color: white; font-weight: 600;">${d}</td>
+                        <td style="padding: 12px 16px; text-align: right;">
+                            <button onclick="deleteBlacklist('${d}', this)" style="background:none; border:none; color:var(--error); cursor:pointer; transition: 0.3s; padding: 8px;">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                             </button>
                         </td>
@@ -2692,6 +2709,7 @@
                 `).join('');
             } catch (e) {
                 console.error("Failed to fetch blacklist:", e);
+                document.getElementById('blacklistTableBody').innerHTML = '<tr><td colspan="3" style="text-align:center; padding:40px; color:var(--error);">Connection Error</td></tr>';
             }
         }
 
@@ -2720,17 +2738,18 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ domains })
                 });
+                const data = await res.json();
                 if (res.ok) {
                     textarea.value = '';
                     triggerToast(`Successfully restricted ${domains.length} domains.`);
                     fetchBlacklist();
                 } else {
-                    const err = await res.json();
-                    triggerToast(err.detail || "Restriction failed");
+                    const detail = typeof data.detail === 'object' ? JSON.stringify(data.detail) : data.detail;
+                    triggerToast(detail || "Restriction failed");
                 }
             } catch (e) {
                 console.error("Blacklist error:", e);
-                triggerToast("Connection error");
+                triggerToast("Connection error: " + e.message);
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = originalText;
@@ -2817,10 +2836,12 @@
                     } else if (data.status && data.status.includes('EMPTY')) {
                         resultEl.innerHTML = `⚠️ <b style="color:var(--warning)">EMPTY</b> - No domains in blacklist. Add some!`;
                     } else {
-                        resultEl.innerHTML = `❌ <b style="color:var(--error)">${data.status || 'Unknown Error'}</b>`;
+                        const status = typeof data.status === 'object' ? JSON.stringify(data.status) : data.status;
+                        resultEl.innerHTML = `❌ <b style="color:var(--error)">${status || 'Unknown Error'}</b>`;
                     }
                 } else {
-                    resultEl.innerHTML = `❌ <b style="color:var(--error)">${data.detail || 'Server Error'}</b>`;
+                    const detail = typeof data.detail === 'object' ? JSON.stringify(data.detail) : data.detail;
+                    resultEl.innerHTML = `❌ <b style="color:var(--error)">${detail || 'Server Error'}</b>`;
                 }
             } catch (e) {
                 resultEl.innerHTML = `❌ <b style="color:var(--error)">Connection Error</b>`;
