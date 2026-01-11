@@ -1164,8 +1164,21 @@
             }
         }
 
+        .sidebar-close-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            cursor: pointer;
+            padding: 8px;
+        }
+
         /* Tablet: Collapsible sidebar */
         @media (max-width: 1200px) {
+            .sidebar-close-btn {
+                display: block;
+            }
+
             .sidebar {
                 transform: translateX(-100%);
                 width: 280px;
@@ -1305,6 +1318,12 @@
                         <div class="brand-sub">Secure Mesh</div>
                     </div>
                 </div>
+                <button class="sidebar-close-btn" onclick="toggleSidebar()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
             </div>
             <nav class="sidebar-nav">
                 <a href="#" class="nav-item active" onclick="showSection('dashboard')">
@@ -1754,6 +1773,17 @@
 
             <!-- Sessions Tab -->
             <div id="view-sessions" style="display: none;">
+                <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
+                    <button onclick="fetchSessions()" class="btn-secondary" style="padding: 6px 12px; font-size: 11px;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" style="margin-right: 4px;">
+                            <path d="M23 4v6h-6"></path>
+                            <path d="M1 20v-6h6"></path>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                        </svg>
+                        Refresh
+                    </button>
+                </div>
                 <div class="table-view" style="max-height: 400px; overflow-y: auto;">
                     <table style="font-size: 13px;">
                         <thead>
