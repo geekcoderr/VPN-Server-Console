@@ -361,18 +361,21 @@
 
         /* Global Warning Banner */
         .system-warning {
-            background: rgba(239, 68, 68, 0.1);
+            background: linear-gradient(90deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05));
+            backdrop-filter: blur(10px);
             border: 1px solid rgba(239, 68, 68, 0.2);
-            border-radius: 16px;
-            padding: 16px 24px;
+            border-radius: 20px;
+            padding: 20px 28px;
             margin-bottom: 32px;
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 18px;
             color: #fca5a5;
-            font-weight: 600;
+            font-weight: 700;
             font-size: 14px;
-            animation: pulse-warning 2s infinite;
+            letter-spacing: 0.5px;
+            box-shadow: 0 10px 30px rgba(239, 68, 68, 0.1);
+            animation: pulse-warning 2.5s infinite ease-in-out;
         }
 
         @keyframes pulse-warning {
@@ -403,21 +406,24 @@
         }
 
         .access-full {
-            background: rgba(99, 102, 241, 0.15);
-            color: #818cf8;
-            border: 1px solid rgba(99, 102, 241, 0.2);
+            background: rgba(99, 102, 241, 0.2);
+            color: #a5b4fc;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.2);
         }
 
         .access-internet {
-            background: rgba(16, 185, 129, 0.15);
-            color: #34d399;
-            border: 1px solid rgba(16, 185, 129, 0.2);
+            background: rgba(16, 185, 129, 0.2);
+            color: #6ee7b7;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
         }
 
-        .access-lan {
-            background: rgba(245, 158, 11, 0.15);
-            color: #fbbf24;
-            border: 1px solid rgba(245, 158, 11, 0.2);
+        .access-intranet {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fcd34d;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
         }
 
         /* Premium Table Design */
@@ -1402,7 +1408,7 @@
                             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                         </svg>
                         <span>Full Access</span>
-                        <small>Internet + LAN</small>
+                        <small>Internet + Intranet</small>
                     </div>
                     <div class="os-option" onclick="setACL('internet-only', this)">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -1413,16 +1419,16 @@
                                 d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
                         </svg>
                         <span>Internet Only</span>
-                        <small>Blocks LAN</small>
+                        <small>Blocks Intranet</small>
                     </div>
-                    <div class="os-option" onclick="setACL('lan-only', this)">
+                    <div class="os-option" onclick="setACL('intranet-only', this)">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2.5">
                             <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
                             <line x1="8" y1="21" x2="16" y2="21" />
                             <line x1="12" y1="17" x2="12" y2="21" />
                         </svg>
-                        <span>LAN Only</span>
+                        <span>Intranet Only</span>
                         <small>No Internet</small>
                     </div>
                 </div>
@@ -1681,12 +1687,11 @@
                 Manage the blacklist. Access to these domains will trigger real-time alerts.
                 <br><br>
                 <span
-                    style="color: var(--accent); font-size: 11px; font-weight: 700; text-transform: uppercase; background: rgba(99, 102, 241, 0.1); padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(99, 102, 241, 0.2);">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
-                        style="margin-right: 4px; vertical-align: middle;">
+                    style="color: var(--accent); font-size: 11px; font-weight: 800; text-transform: uppercase; background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(99, 102, 241, 0.05)); padding: 8px 16px; border-radius: 12px; border: 1px solid rgba(99, 102, 241, 0.3); display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                     </svg>
-                    DNS Enforcement Active: Custom DNS settings on devices are automatically intercepted.
+                    Military-Grade DNS Enforcement Active: Custom DNS settings are automatically intercepted.
                 </span>
             </p>
 
@@ -1831,8 +1836,8 @@
                         </span>
                     </td>
                     <td data-label="Access">
-                        <span class="access-badge ${u.acl_profile === 'full' ? 'access-full' : u.acl_profile === 'internet-only' ? 'access-internet' : 'access-lan'}">
-                            ${u.acl_profile === 'full' ? 'Full Access' : u.acl_profile === 'internet-only' ? 'Internet Only' : 'LAN Only'}
+                        <span class="access-badge ${u.acl_profile === 'full' ? 'access-full' : u.acl_profile === 'internet-only' ? 'access-internet' : 'access-intranet'}">
+                            ${u.acl_profile === 'full' ? 'Full Access' : u.acl_profile === 'internet-only' ? 'Internet Only' : 'Intranet Only'}
                         </span>
                     </td>
                     <td data-label="Connectivity">

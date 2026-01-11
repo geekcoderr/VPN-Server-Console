@@ -41,7 +41,7 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     
     # Access Control
-    acl_profile: Mapped[str] = mapped_column(String(50), default="full") # full, internet-only, lan-only
+    acl_profile: Mapped[str] = mapped_column(String(50), default="full") # full, internet-only, intranet-only
 
 class Session(Base):
     __tablename__ = "vpn_sessions"
@@ -90,6 +90,9 @@ async def init_db():
             if not result.fetchone():
                 print("Migration: Adding 'acl_profile' column...")
                 await conn.execute(text("ALTER TABLE users ADD COLUMN acl_profile VARCHAR(50) DEFAULT 'full'"))
+            
+            # 4. Rename 'lan-only' to 'intranet-only'
+            await conn.execute(text("UPDATE users SET acl_profile = 'intranet-only' WHERE acl_profile = 'lan-only'"))
             
         except Exception as e:
             print(f"Migration error: {e}")

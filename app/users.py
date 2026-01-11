@@ -59,7 +59,7 @@ class CreateUserRequest(BaseModel):
         
     @validator('acl_profile')
     def validate_acl(cls, v):
-        if v not in ('full', 'internet-only', 'lan-only'):
+        if v not in ('full', 'internet-only', 'intranet-only'):
             raise ValueError("Invalid ACL profile")
         return v
 

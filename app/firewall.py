@@ -8,7 +8,7 @@ import logging
 # ACL Profiles
 PROFILE_FULL = "full"
 PROFILE_INTERNET_ONLY = "internet-only"
-PROFILE_LAN_ONLY = "lan-only"
+PROFILE_INTRANET_ONLY = "intranet-only"
 
 # Private Ranges (RFC 1918)
 PRIVATE_NETWORKS = [
@@ -111,7 +111,7 @@ def apply_acl(ip: str, profile: str):
         run_iptables(["-A", "VPN_ACL", "-s", ip, "-j", "ACCEPT"])
 
     elif profile == PROFILE_INTERNET_ONLY:
-        # Internet Only: Block access to Private Networks (LAN)
+        # Internet Only: Block access to Private Networks (Intranet)
         # We don't need to allow VPN_SERVER_IP here because DNS is handled in INPUT chain
         for net in PRIVATE_NETWORKS:
             # Exception: Allow traffic to the VPN server IP itself (for dashboard/API if needed)
@@ -121,8 +121,8 @@ def apply_acl(ip: str, profile: str):
         # Allow everything else (Internet)
         run_iptables(["-A", "VPN_ACL", "-s", ip, "-j", "ACCEPT"])
 
-    elif profile == PROFILE_LAN_ONLY:
-        # LAN Only: Allow access to Private Networks, block Internet
+    elif profile == PROFILE_INTRANET_ONLY:
+        # Intranet Only: Allow access to Private Networks, block Internet
         for net in PRIVATE_NETWORKS:
             run_iptables(["-A", "VPN_ACL", "-s", ip, "-d", net, "-j", "ACCEPT"])
         # Block everything else (Internet)
