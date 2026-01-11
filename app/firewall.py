@@ -55,6 +55,17 @@ def init_firewall_chains():
     if not run_iptables(["-C", "FORWARD", "-j", "VPN_ACL"]):
         run_iptables(["-I", "FORWARD", "1", "-j", "VPN_ACL"])
 
+    # 2b. Allow established/related traffic (Stateful Inspection)
+    # This is CRITICAL for return traffic from the internet
+    if not run_iptables(["-C", "FORWARD", "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT"]):
+        run_iptables(["-I", "FORWARD", "1", "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT"])
+
+    # 2c. Enable NAT (Masquerade) for Internet Access
+    # We assume the default interface is eth0 or similar. We use a generic rule.
+    run_iptables(["-t", "nat", "-A", "POSTROUTING", "-s", "10.50.0.0/24", "-o", "eth0", "-j", "MASQUERADE"])
+    # Also try without -o eth0 if eth0 is not the name
+    run_iptables(["-t", "nat", "-A", "POSTROUTING", "-s", "10.50.0.0/24", "-j", "MASQUERADE"])
+
     # 3. DNS Enforcement (Hijacking)
     # Intercept port 53 traffic from VPN interface and redirect to internal CoreDNS
     # We use the 'nat' table PREROUTING chain
@@ -65,6 +76,11 @@ def init_firewall_chains():
         if not run_iptables(check_rule):
             run_iptables(dnat_rule)
             print(f"🛡️  DNS Hijacking enabled for {proto} (forced to {VPN_SERVER_IP})")
+
+    # 3b. Explicitly ALLOW DNS traffic to the VPN Server IP in the FORWARD chain
+    # This ensures that even restricted profiles can resolve DNS
+    for proto in ["udp", "tcp"]:
+        run_iptables(["-I", "FORWARD", "1", "-i", WG_INTERFACE, "-p", proto, "--dport", "53", "-d", VPN_SERVER_IP, "-j", "ACCEPT"])
 
     # 4. Block DNS-over-TLS (DoT) - Port 853
     # This forces devices to fall back to standard DNS (port 53) which we hijack
