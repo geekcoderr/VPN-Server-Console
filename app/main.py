@@ -136,7 +136,7 @@ async def broadcast_metrics():
 
 app = FastAPI(
     title="GeekSTunnel Premium Console",
-    version="4.3.8",
+    version="4.3.9",
     lifespan=lifespan
 )
 
@@ -152,7 +152,7 @@ def csrf_protect_exception_handler(request: Request, exc: CsrfProtectError):
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Restrict this in production to your domain
+    allow_origins=["https://vpn.nishantmaheshwari.online"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -168,7 +168,21 @@ app.include_router(invites_router)
 
 @app.websocket("/ws/stats")
 async def stats_websocket(websocket: WebSocket):
-    """WebSocket for live VPN stats."""
+    """WebSocket for live VPN stats with session authentication."""
+    # 1. Authenticate session from cookie
+    from .auth import SESSION_COOKIE_NAME, serializer, SESSION_MAX_AGE
+    session_token = websocket.cookies.get(SESSION_COOKIE_NAME)
+    
+    if not session_token:
+        await websocket.close(code=4001) # Unauthorized
+        return
+        
+    try:
+        serializer.loads(session_token, max_age=SESSION_MAX_AGE)
+    except:
+        await websocket.close(code=4001) # Invalid session
+        return
+
     await manager.connect(websocket)
     try:
         # Send IMMEDIATE initial state to the new client

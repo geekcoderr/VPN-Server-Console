@@ -10,6 +10,9 @@ import subprocess
 from pathlib import Path
 from .config import PROJECT_ROOT, DATA_DIR
 from .auth import get_current_admin
+from fastapi_csrf_protect import CsrfProtect
+from .limiter import limiter
+from fastapi import Request
 
 router = APIRouter(prefix="/api/alerts", tags=["alerts"])
 
@@ -115,7 +118,14 @@ async def get_blacklist(admin: str = Depends(get_current_admin)):
     return {"domains": domains}
 
 @router.post("/blacklist")
-async def add_to_blacklist(req: DomainRequest, admin: str = Depends(get_current_admin)):
+@limiter.limit("20/hour")
+async def add_to_blacklist(
+    req: DomainRequest,
+    csrf_protect: CsrfProtect = Depends(),
+    admin: str = Depends(get_current_admin)
+):
+    """Add multiple domains to the blacklist with CSRF protection."""
+    await csrf_protect.validate_csrf(req)
     """Add multiple domains to the blacklist."""
     input_domains = []
     if req.domain: input_domains.append(req.domain)
@@ -141,7 +151,13 @@ async def add_to_blacklist(req: DomainRequest, admin: str = Depends(get_current_
     return {"message": f"Successfully blocked {added_count} new domains", "total": len(domains)}
 
 @router.post("/blacklist/delete")
-async def bulk_remove_from_blacklist(req: DomainRequest, admin: str = Depends(get_current_admin)):
+async def bulk_remove_from_blacklist(
+    req: DomainRequest,
+    csrf_protect: CsrfProtect = Depends(),
+    admin: str = Depends(get_current_admin)
+):
+    """Remove multiple domains from the blacklist with CSRF protection."""
+    await csrf_protect.validate_csrf(req)
     """Remove multiple domains from the blacklist."""
     input_domains = []
     if req.domain: input_domains.append(req.domain)
@@ -163,7 +179,14 @@ async def bulk_remove_from_blacklist(req: DomainRequest, admin: str = Depends(ge
     return {"message": f"Successfully unblocked {removed_count} domains", "total": len(domains)}
 
 @router.delete("/blacklist/{domain}")
-async def remove_from_blacklist(domain: str, admin: str = Depends(get_current_admin)):
+async def remove_from_blacklist(
+    domain: str,
+    request: Request,
+    csrf_protect: CsrfProtect = Depends(),
+    admin: str = Depends(get_current_admin)
+):
+    """Remove a single domain from the blacklist with CSRF protection."""
+    await csrf_protect.validate_csrf(request)
     """Remove a single domain from the blacklist."""
     domain = domain.strip().lower()
     domains = _load_blacklist()

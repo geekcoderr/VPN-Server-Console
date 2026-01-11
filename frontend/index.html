@@ -1694,7 +1694,7 @@
                 </div>
                 <div class="footer"
                     style="text-align: center; color: var(--text-dim); font-size: 12px; padding: 60px 0; opacity: 0.5; font-family: 'Inter', sans-serif;">
-                    GeekSTunnel v4.3.8 &copy; 2026 | Premium Console
+                    GeekSTunnel v4.3.9 &copy; 2026 | Premium Console
                 </div>
             </div>
         </main>
@@ -2202,13 +2202,31 @@
 
     <script>
         /** CORE NAVIGATION (Defined first for reliability) **/
-        function showModal(id, event) {
+        let csrfToken = null;
+
+        async function fetchCsrfToken() {
+            try {
+                const res = await fetch('/auth/csrf');
+                const data = await res.json();
+                csrfToken = data.csrf_token;
+                console.log("CSRF Token Refreshed");
+            } catch (e) {
+                console.error("Failed to fetch CSRF token", e);
+            }
+        }
+
+        async function showModal(id, event) {
             console.log("Opening Modal:", id);
             if (event && event.preventDefault) event.preventDefault();
             const modal = document.getElementById(id);
             if (!modal) {
                 console.error("Modal not found:", id);
                 return;
+            }
+
+            // Refresh CSRF token for state-changing modals
+            if (['customModal', 'settingsModal', 'alertsModal'].includes(id)) {
+                await fetchCsrfToken();
             }
 
             // Update active state
@@ -2318,6 +2336,7 @@
 
         async function init() {
             try {
+                await fetchCsrfToken(); // Initial token fetch
                 const res = await fetch('/auth/me');
                 if (!res.ok) { window.location.href = "/login.html"; return; }
                 const data = await res.json();
@@ -2574,7 +2593,10 @@
 
             const res = await fetch('/api/users', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
                 body: JSON.stringify({
                     username: name,
                     client_os: selectedOS,
@@ -2609,7 +2631,10 @@
                     if (isProcessing) return;
                     isProcessing = true;
                     try {
-                        const res = await fetch(`/api/users/${name}/toggle`, { method: 'PATCH' });
+                        const res = await fetch(`/api/users/${name}/toggle`, {
+                            method: 'PATCH',
+                            headers: { 'X-CSRF-Token': csrfToken }
+                        });
                         if (res.ok) {
                             loadNodes();
                             triggerToast(`Access for <b class="alert-name">${name}</b> updated.`);
@@ -2631,7 +2656,10 @@
                     if (isProcessing) return;
                     isProcessing = true;
                     try {
-                        const res = await fetch(`/api/users/${name}`, { method: 'DELETE' });
+                        const res = await fetch(`/api/users/${name}`, {
+                            method: 'DELETE',
+                            headers: { 'X-CSRF-Token': csrfToken }
+                        });
                         if (res.ok) {
                             loadNodes();
                             triggerToast(`Node <b class="alert-name">${name}</b> Revoked from Mesh.`);
@@ -2671,7 +2699,10 @@
                     if (isProcessing) return;
                     isProcessing = true;
                     try {
-                        const res = await fetch(`/api/users/${name}/rotate`, { method: 'POST' });
+                        const res = await fetch(`/api/users/${name}/rotate`, {
+                            method: 'POST',
+                            headers: { 'X-CSRF-Token': csrfToken }
+                        });
                         if (res.ok) {
                             triggerToast("Keys rotated. Peer must re-import.");
                             getNodeConfig(name); // Show new config automatically
@@ -2715,7 +2746,12 @@
         }
 
         function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
-        function logout() { fetch('/auth/logout', { method: 'POST' }).then(() => window.location.href = "/login.html"); }
+        function logout() {
+            fetch('/auth/logout', {
+                method: 'POST',
+                headers: { 'X-CSRF-Token': csrfToken }
+            }).then(() => window.location.href = "/login.html");
+        }
         function downloadConfig() {
             const raw = document.getElementById('provisionRaw').innerText;
             const blob = new Blob([raw], { type: 'text/plain' });
@@ -2740,7 +2776,8 @@
         let tfaSecret = null;
         async function setup2FA() {
             const res = await fetch('/auth/2fa/setup', {
-                method: 'POST'
+                method: 'POST',
+                headers: { 'X-CSRF-Token': csrfToken }
             });
             const data = await res.json();
             if (data.qr_code) {
@@ -2783,7 +2820,10 @@
 
             const res = await fetch('/auth/2fa/verify', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
                 body: JSON.stringify({ secret: tfaSecret, code })
             });
             if (res.ok) {
@@ -2918,7 +2958,10 @@
             try {
                 const res = await fetch('/api/alerts/blacklist', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken
+                    },
                     body: JSON.stringify({ domains })
                 });
                 const data = await res.json();
@@ -2947,7 +2990,10 @@
                 try {
                     const res = await fetch('/api/alerts/blacklist/delete', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': csrfToken
+                        },
                         body: JSON.stringify({ domains: selected })
                     });
                     if (res.ok) {
@@ -2967,7 +3013,8 @@
 
                 try {
                     const res = await fetch(`/api/alerts/blacklist/${domain}`, {
-                        method: 'DELETE'
+                        method: 'DELETE',
+                        headers: { 'X-CSRF-Token': csrfToken }
                     });
                     if (res.ok) {
                         triggerToast(`Restriction removed for <b class="alert-name">${domain}</b>.`);

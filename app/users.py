@@ -8,6 +8,9 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, validator
 
 from .auth import get_current_admin
+from fastapi_csrf_protect import CsrfProtect
+from .limiter import limiter
+from fastapi import Request
 from .database import (
     get_all_users,
     get_user_by_username,
@@ -223,10 +226,14 @@ async def list_users(admin: str = Depends(get_current_admin)):
 
 
 @router.post("")
+@limiter.limit("10/hour")
 async def create_vpn_user(
     request: CreateUserRequest,
+    csrf_protect: CsrfProtect = Depends(),
     admin: str = Depends(get_current_admin)
 ):
+    """Create a new VPN user with CSRF protection."""
+    await csrf_protect.validate_csrf(request)
     """
     Create a new VPN user.
     """
@@ -311,8 +318,12 @@ async def create_vpn_user(
 @router.delete("/{username}")
 async def delete_vpn_user(
     username: str,
+    request: Request,
+    csrf_protect: CsrfProtect = Depends(),
     admin: str = Depends(get_current_admin)
 ):
+    """Delete a VPN user with CSRF protection."""
+    await csrf_protect.validate_csrf(request)
     """
     Delete a VPN user.
     Removes from both WireGuard config and database.
@@ -342,8 +353,12 @@ async def delete_vpn_user(
 @router.patch("/{username}/toggle")
 async def toggle_user_status(
     username: str,
+    request: Request,
+    csrf_protect: CsrfProtect = Depends(),
     admin: str = Depends(get_current_admin)
 ):
+    """Toggle user status with CSRF protection."""
+    await csrf_protect.validate_csrf(request)
     """
     Toggle user status between active and disabled.
     """
@@ -422,10 +437,15 @@ async def get_user_config(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/{username}/rotate")
+@limiter.limit("5/hour")
 async def rotate_user_keys(
     username: str,
+    request: Request,
+    csrf_protect: CsrfProtect = Depends(),
     admin: str = Depends(get_current_admin)
 ):
+    """Rotate user keys with CSRF protection."""
+    await csrf_protect.validate_csrf(request)
     """
     Forcefully invalidate old keys and generate new ones.
     Useful if a user's config is leaked.
@@ -455,8 +475,12 @@ async def rotate_user_keys(
 @router.post("/{username}/sync")
 async def sync_user_to_config(
     username: str,
+    request: Request,
+    csrf_protect: CsrfProtect = Depends(),
     admin: str = Depends(get_current_admin)
 ):
+    """Sync user to config with CSRF protection."""
+    await csrf_protect.validate_csrf(request)
     """Sync a user from database to WireGuard config."""
     user = await get_user_by_username(username)
     if not user:
@@ -473,7 +497,13 @@ async def sync_user_to_config(
 
 
 @router.post("/sync_all")
-async def sync_all_users(admin: str = Depends(get_current_admin)):
+async def sync_all_users(
+    request: Request,
+    csrf_protect: CsrfProtect = Depends(),
+    admin: str = Depends(get_current_admin)
+):
+    """Sync ALL users with CSRF protection."""
+    await csrf_protect.validate_csrf(request)
     """
     Sync ALL active users from DB to WireGuard config.
     """

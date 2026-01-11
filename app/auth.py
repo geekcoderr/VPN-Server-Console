@@ -109,6 +109,14 @@ async def logout():
     response.delete_cookie(SESSION_COOKIE_NAME)
     return response
 
+@router.get("/csrf")
+async def get_csrf_token(csrf_protect: CsrfProtect = Depends()):
+    """Provide a CSRF token to the frontend."""
+    token = csrf_protect.generate_csrf()
+    response = JSONResponse(content={"csrf_token": token})
+    csrf_protect.set_csrf_cookie(token, response)
+    return response
+
 
 @router.get("/me")
 async def get_me(admin: str = Depends(get_current_admin)):
@@ -121,17 +129,21 @@ async def get_me(admin: str = Depends(get_current_admin)):
 
 
 from pydantic import BaseModel
+from fastapi_csrf_protect import CsrfProtect
 
 class PasswordChangeRequest(BaseModel):
     current_password: str
     new_password: str
 
 @router.put("/password")
+@limiter.limit("3/hour")
 async def change_password(
     request: PasswordChangeRequest,
+    csrf_protect: CsrfProtect = Depends(),
     admin: str = Depends(get_current_admin)
 ):
-    """Change admin password."""
+    """Change admin password with CSRF protection."""
+    await csrf_protect.validate_csrf(request)
     admin_data = await get_admin()
     
     if not verify_password(request.current_password, admin_data['password_hash']):
@@ -146,7 +158,12 @@ async def change_password(
     return {"message": "Password changed successfully"}
 
 @router.post("/2fa/setup")
-async def setup_2fa(admin: str = Depends(get_current_admin)):
+@limiter.limit("5/hour")
+async def setup_2fa(
+    csrf_protect: CsrfProtect = Depends(),
+    admin: str = Depends(get_current_admin)
+):
+    """Setup 2FA with CSRF protection."""
     secret = random_base32()
     uri = get_provisioning_uri(admin, secret)
     qr = generate_qr_data_uri(uri)
@@ -159,8 +176,11 @@ class TOTPVerifyRequest(BaseModel):
 @router.post("/2fa/verify")
 async def verify_2fa_setup(
     request: TOTPVerifyRequest,
+    csrf_protect: CsrfProtect = Depends(),
     admin: str = Depends(get_current_admin)
 ):
+    """Verify 2FA setup with CSRF protection."""
+    await csrf_protect.validate_csrf(request)
     if verify_totp(request.secret, request.code):
         # Save to DB
         async with AsyncSessionLocal() as session:
@@ -171,9 +191,13 @@ async def verify_2fa_setup(
 
 @router.post("/2fa/disable")
 async def disable_2fa(
+    request: Request,
     password: str = Form(...),
+    csrf_protect: CsrfProtect = Depends(),
     admin: str = Depends(get_current_admin)
 ):
+    """Disable 2FA with CSRF protection."""
+    await csrf_protect.validate_csrf(request)
     admin_data = await get_admin()
     if not verify_password(password, admin_data['password_hash']):
         raise HTTPException(status_code=400, detail="Invalid password")
