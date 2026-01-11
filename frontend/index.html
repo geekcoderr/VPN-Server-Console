@@ -1433,7 +1433,7 @@
             <div class="sidebar-header">
                 <div class="brand">
                     <div class="logo-box">
-                        <img src="logo.svg" alt="GeekSTunnel" style="width: 40px; height: 40px; border-radius: 8px;">
+                        <img src="logo.png" alt="GeekSTunnel" style="width: 40px; height: 40px; border-radius: 8px;">
                     </div>
                     <div>
                         <h1>GeekSTunnel</h1>
@@ -1456,13 +1456,13 @@
                     </svg>
                     <span>Dashboard</span>
                 </a>
-                <a href="#" class="nav-item" onclick="showModal('alertsModal'); fetchBlacklist();">
+                <a href="#" class="nav-item" onclick="showModal('alertsModal', event); fetchBlacklist();">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                     </svg>
                     <span>Restricted Domains</span>
                 </a>
-                <a href="#" class="nav-item" onclick="showModal('settingsModal')">
+                <a href="#" class="nav-item" onclick="showModal('settingsModal', event)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3" />
                         <path
@@ -1477,7 +1477,7 @@
                         <div class="user-avatar-container" style="position: relative;">
                             <div class="user-avatar"
                                 style="overflow: hidden; padding: 0; width: 40px; height: 40px; min-width: 40px; border-radius: 12px;">
-                                <img id="adminAvatar" src="default_avatar.jpg"
+                                <img id="adminAvatar" src="geek_avatar.png"
                                     style="width: 100%; height: 100%; object-fit: cover;">
                             </div>
                         </div>
@@ -2223,25 +2223,31 @@
                 if (window.innerWidth <= 1200) {
                     const sidebar = document.getElementById('sidebar');
                     const overlay = document.getElementById('sidebar-overlay');
-                    sidebar.classList.remove('open');
-                    overlay.classList.remove('show');
+                    if (sidebar) sidebar.classList.remove('open');
+                    if (overlay) overlay.classList.remove('show');
                 }
 
                 if (section === 'dashboard') {
                     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-                    event.target.closest('.nav-item').classList.add('active');
+
+                    // Robust event target detection
+                    const e = event || window.event;
+                    if (e) {
+                        const target = e.target.closest('.nav-item') || e.currentTarget;
+                        if (target) target.classList.add('active');
+                    }
 
                     // Auto-toggle sidebar on desktop (ChatGPT style)
                     if (window.innerWidth > 1200) {
                         const sidebar = document.getElementById('sidebar');
                         const wrapper = document.querySelector('.main-wrapper');
 
-                        if (sidebar.classList.contains('collapsed')) {
+                        if (sidebar && sidebar.classList.contains('collapsed')) {
                             sidebar.classList.remove('collapsed');
-                            wrapper.classList.remove('expanded');
-                        } else {
+                            if (wrapper) wrapper.classList.remove('expanded');
+                        } else if (sidebar) {
                             sidebar.classList.add('collapsed');
-                            wrapper.classList.add('expanded');
+                            if (wrapper) wrapper.classList.add('expanded');
                         }
                     }
                 }
@@ -2668,14 +2674,25 @@
 
             function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
             function logout() { fetch('/auth/logout', { method: 'POST' }).then(() => window.location.href = "/login.html"); }
-            function showModal(id) {
-                document.getElementById(id).classList.add('show');
+            function showModal(id, event) {
+                const modal = document.getElementById(id);
+                if (!modal) return;
+                modal.classList.add('show');
+
+                // Update active state in sidebar if event is provided
+                const e = event || window.event;
+                if (e) {
+                    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                    const target = e.target.closest('.nav-item') || e.currentTarget;
+                    if (target) target.classList.add('active');
+                }
+
                 // Close sidebar on mobile
                 if (window.innerWidth <= 1200) {
                     const sidebar = document.getElementById('sidebar');
                     const overlay = document.getElementById('sidebar-overlay');
-                    sidebar.classList.remove('open');
-                    overlay.classList.remove('show');
+                    if (sidebar) sidebar.classList.remove('open');
+                    if (overlay) overlay.classList.remove('show');
                 }
             }
             function closeModal(id) { document.getElementById(id).classList.remove('show'); }
