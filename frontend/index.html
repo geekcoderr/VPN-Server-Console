@@ -1436,7 +1436,8 @@
             <div class="sidebar-header">
                 <div class="brand">
                     <div class="logo-box">
-                        <img src="logo.svg" alt="GeekSTunnel" style="width: 40px; height: 40px; border-radius: 8px;">
+                        <img src="geek_avatar.png" alt="GeekSTunnel"
+                            style="width: 40px; height: 40px; border-radius: 12px; object-fit: cover;">
                     </div>
                     <div>
                         <h1>GeekSTunnel</h1>
@@ -2222,8 +2223,7 @@
             }
 
             function showSection(section, event) {
-                const e = event || window.event;
-                if (e && e.preventDefault) e.preventDefault();
+                if (event && event.preventDefault) event.preventDefault();
 
                 // Close sidebar on mobile for any nav click
                 if (window.innerWidth <= 1200) {
@@ -2236,23 +2236,21 @@
                 if (section === 'dashboard') {
                     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
 
-                    // Robust event target detection
-                    if (e) {
-                        const target = (e.target && e.target.closest) ? e.target.closest('.nav-item') : (e.currentTarget || null);
+                    // Simple active state update
+                    if (event && event.currentTarget) {
+                        event.currentTarget.classList.add('active');
+                    } else if (event && event.target) {
+                        const target = event.target.closest('.nav-item');
                         if (target) target.classList.add('active');
                     }
 
-                    // Auto-toggle sidebar on desktop (ChatGPT style)
+                    // Auto-toggle sidebar on desktop
                     if (window.innerWidth > 1200) {
                         const sidebar = document.getElementById('sidebar');
                         const wrapper = document.querySelector('.main-wrapper');
-
-                        if (sidebar && sidebar.classList.contains('collapsed')) {
-                            sidebar.classList.remove('collapsed');
-                            if (wrapper) wrapper.classList.remove('expanded');
-                        } else if (sidebar) {
-                            sidebar.classList.add('collapsed');
-                            if (wrapper) wrapper.classList.add('expanded');
+                        if (sidebar) {
+                            sidebar.classList.toggle('collapsed');
+                            if (wrapper) wrapper.classList.toggle('expanded');
                         }
                     }
                 }
@@ -2667,7 +2665,7 @@
                 return parseFloat((b / Math.pow(k, i)).toFixed(2)) + ' ' + labels[i];
             }
 
-            function getOSIconIcon(os) {
+            function getOSIcon(os) {
                 const icons = {
                     android: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.3414c-.5511 0-.9978-.4467-.9978-.9978 0-.5511.4467-.9978.9978-.9978.5511 0 .9978.4467.9978.9978 0 .5511-.4467.9978-.9978.9978zm-11.046 0c-.5511 0-.9978-.4467-.9978-.9978 0-.5511.4467-.9978.9978-.9978s.9978.4467.9978.9978c0 .5511-.4467.9978-.9978.9978zm11.4045-6.021l1.9973-3.4592c.1197-.2071.0487-.4721-.1585-.5917-.207-.1196-.472-.0486-.5917.1585l-2.0198 3.4983c-1.2936-.59-2.7303-.9257-4.2464-.9257-1.5161 0-2.9528.3357-4.2464.9257l-2.0198-3.4983c-.1197-.2071-.3847-.2781-.5917-.1585-.2071.1196-.2782.3846-.1585.5917l1.9973 3.4592c-3.1311 1.7088-5.3228 4.8872-5.7148 8.6536h19.1026c-.392-3.7664-2.5837-6.9448-5.7148-8.6536z"/></svg>',
                     ios: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.96.95-2.04 1.72-3.24 1.72-1.16 0-1.54-.72-2.92-.72s-1.84.72-2.92.72c-1.11 0-2.31-.83-3.28-1.81-1.92-1.93-3.4-5.48-3.4-8.6 0-3.3 1.83-5.07 3.63-5.07 1.14 0 1.9.64 2.8.64s1.72-.64 3.03-.64c1.11 0 2.27.42 3.1 1.4-.24.16-1.81 1.1-1.81 3.25 0 2.65 2.19 3.6 2.19 3.6-.04.14-.33.88-.88 1.51zm-5.05-15.11c.91-1.12.75-2.61.75-2.61-.41.02-1.94.31-2.86 1.41-.9 1.04-.76 2.53-.76 2.53.4.03 1.95-.21 2.87-1.33z"/></svg>',
@@ -2680,25 +2678,21 @@
             function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
             function logout() { fetch('/auth/logout', { method: 'POST' }).then(() => window.location.href = "/login.html"); }
             function showModal(id, event) {
-                const e = event || window.event;
-                if (e && e.preventDefault) e.preventDefault();
-
+                if (event && event.preventDefault) event.preventDefault();
                 const modal = document.getElementById(id);
-                if (!modal) {
-                    console.error("Modal not found:", id);
-                    return;
-                }
+                if (!modal) return;
 
-                // Force display flex before adding show class if needed
-                modal.style.display = 'flex';
-                setTimeout(() => modal.classList.add('show'), 10);
-
-                // Update active state in sidebar if event is provided
-                if (e) {
-                    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-                    const target = (e.target && e.target.closest) ? e.target.closest('.nav-item') : (e.currentTarget || null);
+                // Update active state
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                if (event && event.currentTarget) {
+                    event.currentTarget.classList.add('active');
+                } else if (event && event.target) {
+                    const target = event.target.closest('.nav-item');
                     if (target) target.classList.add('active');
                 }
+
+                modal.style.display = 'flex';
+                setTimeout(() => modal.classList.add('show'), 10);
 
                 // Close sidebar on mobile
                 if (window.innerWidth <= 1200) {
