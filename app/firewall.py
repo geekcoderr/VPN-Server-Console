@@ -86,6 +86,7 @@ def apply_acl(ip: str, profile: str):
     1. Clear existing rules for this IP in VPN_ACL chain.
     2. Add new rules based on profile.
     """
+    from .config import VPN_SERVER_IP
     # 1. Cleanup existing rules for this IP
     # Note: iptables doesn't have a "delete all for IP" command easily.
     # We will just append new rules. Ideally, we should flush the chain and rebuild all,
