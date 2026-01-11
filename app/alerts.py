@@ -18,7 +18,8 @@ BLACKLIST_JSON = DATA_DIR / "blacklist.json"
 BLOCKED_HOSTS = PROJECT_ROOT / "coredns" / "blocked.hosts"
 
 class DomainRequest(BaseModel):
-    domains: list[str]
+    domain: str | None = None
+    domains: list[str] | None = None
 
 def _load_blacklist() -> list:
     """Load blacklist from JSON file."""
@@ -70,7 +71,11 @@ async def get_blacklist(admin: str = Depends(get_current_admin)):
 @router.post("/blacklist")
 async def add_to_blacklist(req: DomainRequest, admin: str = Depends(get_current_admin)):
     """Add multiple domains to the blacklist."""
-    new_domains = [d.strip().lower() for d in req.domains if d.strip()]
+    input_domains = []
+    if req.domain: input_domains.append(req.domain)
+    if req.domains: input_domains.extend(req.domains)
+    
+    new_domains = [d.strip().lower() for d in input_domains if d.strip()]
     if not new_domains:
         raise HTTPException(status_code=400, detail="No valid domains provided")
     
@@ -91,7 +96,11 @@ async def add_to_blacklist(req: DomainRequest, admin: str = Depends(get_current_
 @router.post("/blacklist/delete")
 async def bulk_remove_from_blacklist(req: DomainRequest, admin: str = Depends(get_current_admin)):
     """Remove multiple domains from the blacklist."""
-    to_remove = [d.strip().lower() for d in req.domains if d.strip()]
+    input_domains = []
+    if req.domain: input_domains.append(req.domain)
+    if req.domains: input_domains.extend(req.domains)
+    
+    to_remove = [d.strip().lower() for d in input_domains if d.strip()]
     domains = _load_blacklist()
     
     initial_count = len(domains)
