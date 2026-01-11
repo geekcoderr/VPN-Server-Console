@@ -1,11 +1,12 @@
 """
-DNS Blocking Module - Military-Grade v4.0
-Simple, robust, file-based approach. No Redis dependency.
+DNS Blocking Module - Military-Grade v4.1
+Simple, robust, file-based approach with instant reload.
 """
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 import json
 import os
+import subprocess
 from pathlib import Path
 from .config import PROJECT_ROOT, DATA_DIR
 from .auth import get_current_admin
@@ -50,6 +51,16 @@ def _sync_to_hosts(domains: list):
                     f.write(f"0.0.0.0 www.{d}\n")
     print(f"🛡️  DNS Blacklist synced: {len(domains)} domains")
 
+def _reload_coredns():
+    """Signal CoreDNS to reload configuration for instant blocking."""
+    try:
+        # Send SIGHUP to CoreDNS container to trigger config reload
+        subprocess.run(["docker", "kill", "-s", "HUP", "vpn-dns"], 
+                       capture_output=True, timeout=5)
+        print("🔄 CoreDNS reloaded for instant blocking")
+    except Exception as e:
+        print(f"⚠️  CoreDNS reload failed: {e}")
+
 @router.get("/blacklist")
 async def get_blacklist(admin: str = Depends(get_current_admin)):
     """Get all blocked domains."""
@@ -70,6 +81,7 @@ async def add_to_blacklist(req: DomainRequest, admin: str = Depends(get_current_
     domains.append(domain)
     _save_blacklist(domains)
     _sync_to_hosts(domains)
+    _reload_coredns()  # Instant reload
     
     return {"message": f"Domain {domain} blocked", "total": len(domains)}
 
@@ -85,6 +97,7 @@ async def remove_from_blacklist(domain: str, admin: str = Depends(get_current_ad
     domains.remove(domain)
     _save_blacklist(domains)
     _sync_to_hosts(domains)
+    _reload_coredns()  # Instant reload
     
     return {"message": f"Domain {domain} unblocked", "total": len(domains)}
 
@@ -94,6 +107,7 @@ async def test_blocking(admin: str = Depends(get_current_admin)):
     results = {
         "json_file": {"exists": False, "domains": 0},
         "hosts_file": {"exists": False, "lines": 0},
+        "coredns": {"running": False},
         "status": "UNKNOWN"
     }
     
@@ -110,14 +124,25 @@ async def test_blocking(admin: str = Depends(get_current_admin)):
             lines = [l for l in f.readlines() if l.strip() and not l.startswith("#")]
             results["hosts_file"]["lines"] = len(lines)
     
+    # Check CoreDNS container
+    try:
+        result = subprocess.run(["docker", "ps", "--filter", "name=vpn-dns", "--format", "{{.Status}}"],
+                                capture_output=True, text=True, timeout=5)
+        if "Up" in result.stdout:
+            results["coredns"]["running"] = True
+    except:
+        pass
+    
     # Determine status
-    if results["json_file"]["exists"] and results["hosts_file"]["exists"]:
+    if results["json_file"]["exists"] and results["hosts_file"]["exists"] and results["coredns"]["running"]:
         if results["json_file"]["domains"] > 0 and results["hosts_file"]["lines"] > 0:
             results["status"] = "WORKING"
         elif results["json_file"]["domains"] == 0:
             results["status"] = "EMPTY - No domains in blacklist"
         else:
             results["status"] = "SYNC ERROR - Hosts file not updated"
+    elif not results["coredns"]["running"]:
+        results["status"] = "COREDNS NOT RUNNING"
     else:
         results["status"] = "FILES MISSING"
     
