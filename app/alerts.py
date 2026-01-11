@@ -18,7 +18,7 @@ BLACKLIST_JSON = DATA_DIR / "blacklist.json"
 BLOCKED_HOSTS = PROJECT_ROOT / "coredns" / "blocked.hosts"
 
 class DomainRequest(BaseModel):
-    domain: str
+    domains: list[str]
 
 def _load_blacklist() -> list:
     """Load blacklist from JSON file."""
@@ -69,25 +69,45 @@ async def get_blacklist(admin: str = Depends(get_current_admin)):
 
 @router.post("/blacklist")
 async def add_to_blacklist(req: DomainRequest, admin: str = Depends(get_current_admin)):
-    """Add a domain to the blacklist."""
-    domain = req.domain.strip().lower()
-    if not domain:
-        raise HTTPException(status_code=400, detail="Domain cannot be empty")
+    """Add multiple domains to the blacklist."""
+    new_domains = [d.strip().lower() for d in req.domains if d.strip()]
+    if not new_domains:
+        raise HTTPException(status_code=400, detail="No valid domains provided")
     
     domains = _load_blacklist()
-    if domain in domains:
-        raise HTTPException(status_code=400, detail="Domain already blocked")
+    added_count = 0
+    for domain in new_domains:
+        if domain not in domains:
+            domains.append(domain)
+            added_count += 1
     
-    domains.append(domain)
-    _save_blacklist(domains)
-    _sync_to_hosts(domains)
-    _reload_coredns()  # Instant reload
+    if added_count > 0:
+        _save_blacklist(domains)
+        _sync_to_hosts(domains)
+        _reload_coredns()
     
-    return {"message": f"Domain {domain} blocked", "total": len(domains)}
+    return {"message": f"Successfully blocked {added_count} new domains", "total": len(domains)}
+
+@router.post("/blacklist/delete")
+async def bulk_remove_from_blacklist(req: DomainRequest, admin: str = Depends(get_current_admin)):
+    """Remove multiple domains from the blacklist."""
+    to_remove = [d.strip().lower() for d in req.domains if d.strip()]
+    domains = _load_blacklist()
+    
+    initial_count = len(domains)
+    domains = [d for d in domains if d not in to_remove]
+    removed_count = initial_count - len(domains)
+    
+    if removed_count > 0:
+        _save_blacklist(domains)
+        _sync_to_hosts(domains)
+        _reload_coredns()
+    
+    return {"message": f"Successfully unblocked {removed_count} domains", "total": len(domains)}
 
 @router.delete("/blacklist/{domain}")
 async def remove_from_blacklist(domain: str, admin: str = Depends(get_current_admin)):
-    """Remove a domain from the blacklist."""
+    """Remove a single domain from the blacklist."""
     domain = domain.strip().lower()
     domains = _load_blacklist()
     
@@ -97,7 +117,7 @@ async def remove_from_blacklist(domain: str, admin: str = Depends(get_current_ad
     domains.remove(domain)
     _save_blacklist(domains)
     _sync_to_hosts(domains)
-    _reload_coredns()  # Instant reload
+    _reload_coredns()
     
     return {"message": f"Domain {domain} unblocked", "total": len(domains)}
 

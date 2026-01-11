@@ -3,6 +3,7 @@
     hosts /etc/coredns/blocked.hosts {
         fallthrough
         reload 5s
+        ttl 5
     }
     forward . 8.8.8.8 1.1.1.1
     log

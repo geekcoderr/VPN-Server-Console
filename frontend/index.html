@@ -1981,19 +1981,34 @@
                 </span>
             </p>
 
-            <div style="display: flex; gap: 12px; margin-bottom: 24px;">
-                <input type="text" id="newDomain" placeholder="e.g. facebook.com"
-                    style="flex: 1; padding: 14px; background: rgba(255,255,255,0.04); border: 2px solid var(--glass-border); border-radius: 14px; color: white; font-size: 15px; transition: 0.3s;"
+            <div style="margin-bottom: 24px;">
+                <textarea id="newDomains"
+                    placeholder="Enter domains to restrict (one per line)&#10;e.g.&#10;facebook.com&#10;tiktok.com"
+                    style="width: 100%; height: 120px; padding: 16px; background: rgba(255,255,255,0.04); border: 2px solid var(--glass-border); border-radius: 18px; color: white; font-size: 15px; transition: 0.3s; resize: none; font-family: 'Inter', sans-serif;"
                     onfocus="this.style.borderColor='var(--accent)'"
-                    onblur="this.style.borderColor='var(--glass-border)'">
-                <button onclick="addToBlacklist()" class="btn-create"
-                    style="padding: 0 24px; background: var(--error); box-shadow: 0 10px 20px rgba(239, 68, 68, 0.2);">
-                    Restrict Domain
-                </button>
+                    onblur="this.style.borderColor='var(--glass-border)'"></textarea>
+                <div style="display: flex; gap: 12px; margin-top: 12px;">
+                    <button onclick="addToBlacklist()" class="btn-create"
+                        style="flex: 1; padding: 14px; background: var(--error); box-shadow: 0 10px 20px rgba(239, 68, 68, 0.2);">
+                        Restrict Domains
+                    </button>
+                    <button id="btnBulkDelete" onclick="bulkDeleteBlacklist()" class="btn-secondary"
+                        style="flex: 1; padding: 14px; display: none; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); color: var(--error);">
+                        Delete Selected
+                    </button>
+                </div>
             </div>
 
             <div class="table-view" style="max-height: 300px; overflow-y: auto;">
                 <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"><input type="checkbox" id="selectAllDomains"
+                                    onclick="toggleSelectAllDomains(this)"></th>
+                            <th>Domain</th>
+                            <th style="text-align: right;">Action</th>
+                        </tr>
+                    </thead>
                     <tbody id="blacklistTableBody">
                         <!-- Populated by JS -->
                     </tbody>
@@ -2654,12 +2669,19 @@
                 const data = await res.json();
                 const domains = data.domains || [];
                 const tbody = document.getElementById('blacklistTableBody');
+                const bulkBtn = document.getElementById('btnBulkDelete');
+                const selectAll = document.getElementById('selectAllDomains');
+                
+                bulkBtn.style.display = 'none';
+                if (selectAll) selectAll.checked = false;
+
                 if (domains.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="2" style="text-align:center; padding:40px; color:var(--text-dim);">No restricted domains found.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:40px; color:var(--text-dim);">No restricted domains found.</td></tr>';
                     return;
                 }
                 tbody.innerHTML = domains.map(d => `
                     <tr>
+                        <td><input type="checkbox" class="domain-checkbox" value="${d}" onclick="updateBulkDeleteVisibility()"></td>
                         <td style="color: white; font-weight: 600;">${d}</td>
                         <td style="text-align: right;">
                             <button onclick="deleteBlacklist('${d}', this)" style="background:none; border:none; color:var(--error); cursor:pointer; transition: 0.3s;">
@@ -2673,11 +2695,21 @@
             }
         }
 
+        function toggleSelectAllDomains(el) {
+            document.querySelectorAll('.domain-checkbox').forEach(cb => cb.checked = el.checked);
+            updateBulkDeleteVisibility();
+        }
+
+        function updateBulkDeleteVisibility() {
+            const selected = document.querySelectorAll('.domain-checkbox:checked').length;
+            document.getElementById('btnBulkDelete').style.display = selected > 0 ? 'block' : 'none';
+        }
+
         async function addToBlacklist() {
             const btn = event.target.closest('button');
-            const input = document.getElementById('newDomain');
-            const domain = input.value.trim();
-            if (!domain) return;
+            const textarea = document.getElementById('newDomains');
+            const domains = textarea.value.split('\n').map(d => d.trim()).filter(d => d);
+            if (domains.length === 0) return;
 
             const originalText = btn.innerHTML;
             btn.disabled = true;
@@ -2687,11 +2719,11 @@
                 const res = await fetch('/api/alerts/blacklist', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ domain })
+                    body: JSON.stringify({ domains })
                 });
                 if (res.ok) {
-                    input.value = '';
-                    triggerToast(`Domain <b class="alert-name">${domain}</b> restricted.`);
+                    textarea.value = '';
+                    triggerToast(`Successfully restricted ${domains.length} domains.`);
                     fetchBlacklist();
                 } else {
                     const err = await res.json();
@@ -2704,6 +2736,27 @@
                 btn.disabled = false;
                 btn.innerHTML = originalText;
             }
+        }
+
+        async function bulkDeleteBlacklist() {
+            const selected = Array.from(document.querySelectorAll('.domain-checkbox:checked')).map(cb => cb.value);
+            if (selected.length === 0) return;
+
+            showConfirm(`Remove restriction for <b style="color:var(--error)">${selected.length}</b> selected domains?`, async () => {
+                try {
+                    const res = await fetch('/api/alerts/blacklist/delete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ domains: selected })
+                    });
+                    if (res.ok) {
+                        triggerToast(`Successfully unblocked ${selected.length} domains.`);
+                        fetchBlacklist();
+                    }
+                } catch (e) {
+                    triggerToast("Bulk deletion failed");
+                }
+            });
         }
 
         async function deleteBlacklist(domain, btn) {
