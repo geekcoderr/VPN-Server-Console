@@ -1176,6 +1176,20 @@
                 margin-right: 0;
             }
 
+            /* Fix for User Profile in Mini Mode */
+            .sidebar.collapsed .user-details {
+                display: none;
+            }
+
+            .sidebar.collapsed .user-info {
+                padding: 0 !important;
+                justify-content: center;
+            }
+
+            .sidebar.collapsed .user-avatar-container {
+                margin: 0 auto;
+            }
+
             .main-wrapper {
                 margin-left: 280px;
                 transition: margin-left 0.3s ease;
@@ -2038,14 +2052,19 @@
         let allUsers = []; // Global store for searching
 
         function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const wrapper = document.querySelector('.main-wrapper');
+
+            // Desktop Toggle Logic
             if (window.innerWidth > 1200) {
-                // Desktop: Toggle collapse
-                document.getElementById('sidebar').classList.toggle('collapsed');
-                document.querySelector('.main-wrapper').classList.toggle('expanded');
-            } else {
-                // Mobile: Toggle overlay
-                document.getElementById('sidebar').classList.toggle('open');
-                document.getElementById('sidebar-overlay').classList.toggle('show');
+                sidebar.classList.toggle('collapsed');
+                wrapper.classList.toggle('expanded');
+            }
+            // Mobile Toggle Logic
+            else {
+                sidebar.classList.toggle('open');
+                overlay.classList.toggle('show');
             }
         }
 
