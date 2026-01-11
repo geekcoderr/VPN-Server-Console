@@ -2172,6 +2172,27 @@
             showModal('customModal');
         }
 
+        async function testBlocking() {
+            const resultEl = document.getElementById('testResult');
+            resultEl.innerText = 'Testing...';
+            resultEl.style.color = 'var(--text-dim)';
+
+            try {
+                const res = await fetch('/api/alerts/test-blocking');
+                const data = await res.json();
+
+                if (data.status === 'WORKING') {
+                    resultEl.innerHTML = `✅ <b style="color:var(--success)">WORKING</b> - ${data.json_file.domains} domains blocked`;
+                } else if (data.status.includes('EMPTY')) {
+                    resultEl.innerHTML = `⚠️ <b style="color:var(--warning)">EMPTY</b> - No domains in blacklist. Add some!`;
+                } else {
+                    resultEl.innerHTML = `❌ <b style="color:var(--error)">${data.status}</b>`;
+                }
+            } catch (e) {
+                resultEl.innerHTML = `❌ <b style="color:var(--error)">Connection Error</b>`;
+            }
+        }
+
         /** SESSION HISTORY **/
         function showUserDetails(username, rx, tx) {
             document.getElementById('detailUsername').innerText = username;
