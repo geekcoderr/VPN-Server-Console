@@ -2647,21 +2647,37 @@
 
         async function fetchSessions() {
             const username = document.getElementById('detailUsername').innerText;
-            const res = await fetch(`/api/users/${username}/sessions`);
-            const data = await res.json();
             const tbody = document.getElementById('sessionTableBody');
-            tbody.innerHTML = data.sessions.map(s => `
-                <tr>
-                    <td style="color: white; font-weight: 600;">${new Date(s.start_time).toLocaleString()}</td>
-                    <td style="color: var(--text-dim);">${s.duration}</td>
-                    <td style="font-family: monospace; color: var(--accent);">${s.source_ip || 'N/A'}</td>
-                    <td style="text-align: right;">
-                        <span style="color: var(--success);">↓ ${formatBytes(s.bytes_rx)}</span>
-                        <span style="color: var(--text-dim); margin: 0 4px;">/</span>
-                        <span style="color: var(--accent);">↑ ${formatBytes(s.bytes_tx)}</span>
-                    </td>
-                </tr>
-            `).join('');
+
+            try {
+                const res = await fetch(`/api/users/${username}/sessions`);
+                if (!res.ok) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-dim); padding: 40px;">Failed to load sessions</td></tr>';
+                    return;
+                }
+
+                const data = await res.json();
+
+                if (!data.sessions || data.sessions.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-dim); padding: 40px;">No session history recorded yet. Sessions are logged when users connect/disconnect.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.sessions.map(s => `
+                    <tr>
+                        <td style="color: white; font-weight: 600;">${new Date(s.start_time).toLocaleString()}</td>
+                        <td style="color: var(--text-dim);">${s.duration}</td>
+                        <td style="font-family: monospace; color: var(--accent);">${s.source_ip || 'N/A'}</td>
+                        <td style="text-align: right;">
+                            <span style="color: var(--success);">↓ ${formatBytes(s.bytes_rx)}</span>
+                            <span style="color: var(--text-dim); margin: 0 4px;">/</span>
+                            <span style="color: var(--accent);">↑ ${formatBytes(s.bytes_tx)}</span>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--error); padding: 40px;">Error loading sessions: ' + err.message + '</td></tr>';
+            }
         }
     </script>
 </body>
