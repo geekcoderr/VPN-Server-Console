@@ -61,8 +61,8 @@ echo ""
 echo ""
 echo "[4/6] Configuring Service Architecture..."
 chmod 644 $APP_DIR/coredns/Corefile
-touch $APP_DIR/coredns/blocked.hosts
-chmod 644 $APP_DIR/coredns/blocked.hosts
+touch $APP_DIR/coredns/blocked.conf
+chmod 644 $APP_DIR/coredns/blocked.conf
 
 # Check if we are in Hybrid Mode (Docker Nginx)
 if docker ps | grep -q "vpn-nginx"; then
