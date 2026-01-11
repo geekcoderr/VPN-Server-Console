@@ -106,7 +106,10 @@ def apply_acl(ip: str, profile: str):
         run_iptables(["-A", "VPN_ACL", "-s", ip, "-j", "ACCEPT"])
 
     elif profile == PROFILE_INTERNET_ONLY:
-        # Internet Only: Block access to Private Networks (LAN)
+        # Internet Only: Block access to Private Networks (LAN) but allow VPN server IP for DNS
+        # IMPORTANT: Allow VPN server IP FIRST (for DNS resolution)
+        run_iptables(["-A", "VPN_ACL", "-s", ip, "-d", VPN_SERVER_IP, "-j", "ACCEPT"])
+        # Block private networks (except VPN server which was already allowed above)
         for net in PRIVATE_NETWORKS:
             run_iptables(["-A", "VPN_ACL", "-s", ip, "-d", net, "-j", "DROP"])
         # Allow everything else (Internet)
