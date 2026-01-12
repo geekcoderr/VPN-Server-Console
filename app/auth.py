@@ -138,7 +138,8 @@ class PasswordChangeRequest(BaseModel):
 @router.put("/password")
 @limiter.limit("3/hour")
 async def change_password(
-    request: PasswordChangeRequest,
+    request: Request,
+    body: PasswordChangeRequest,
     csrf_protect: CsrfProtect = Depends(),
     admin: str = Depends(get_current_admin)
 ):
@@ -146,13 +147,13 @@ async def change_password(
     await csrf_protect.validate_csrf(request)
     admin_data = await get_admin()
     
-    if not verify_password(request.current_password, admin_data['password_hash']):
+    if not verify_password(body.current_password, admin_data['password_hash']):
         raise HTTPException(status_code=400, detail="Current password is incorrect")
     
-    if len(request.new_password) < 8:
+    if len(body.new_password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
     
-    new_hash = hash_password(request.new_password)
+    new_hash = hash_password(body.new_password)
     await create_admin(admin, new_hash)
     
     return {"message": "Password changed successfully"}
@@ -160,6 +161,7 @@ async def change_password(
 @router.post("/2fa/setup")
 @limiter.limit("5/hour")
 async def setup_2fa(
+    request: Request,
     csrf_protect: CsrfProtect = Depends(),
     admin: str = Depends(get_current_admin)
 ):
@@ -175,16 +177,17 @@ class TOTPVerifyRequest(BaseModel):
 
 @router.post("/2fa/verify")
 async def verify_2fa_setup(
-    request: TOTPVerifyRequest,
+    request: Request,
+    body: TOTPVerifyRequest,
     csrf_protect: CsrfProtect = Depends(),
     admin: str = Depends(get_current_admin)
 ):
     """Verify 2FA setup with CSRF protection."""
     await csrf_protect.validate_csrf(request)
-    if verify_totp(request.secret, request.code):
+    if verify_totp(body.secret, body.code):
         # Save to DB
         async with AsyncSessionLocal() as session:
-            await session.execute(update(Admin).where(Admin.username == admin).values(totp_secret=request.secret))
+            await session.execute(update(Admin).where(Admin.username == admin).values(totp_secret=body.secret))
             await session.commit()
         return {"status": "enabled"}
     raise HTTPException(status_code=400, detail="Invalid code")
