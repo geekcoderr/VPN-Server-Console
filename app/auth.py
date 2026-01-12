@@ -5,7 +5,7 @@ Session-based authentication with secure cookies.
 """
 import bcrypt
 from fastapi import APIRouter, Request, Response, HTTPException, Form, Depends
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 from .database import get_admin, create_admin, AsyncSessionLocal, Admin
