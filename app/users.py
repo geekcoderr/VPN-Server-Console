@@ -228,7 +228,8 @@ async def list_users(admin: str = Depends(get_current_admin)):
 @router.post("")
 @limiter.limit("10/hour")
 async def create_vpn_user(
-    request: CreateUserRequest,
+    request: Request,
+    body: CreateUserRequest,
     csrf_protect: CsrfProtect = Depends(),
     admin: str = Depends(get_current_admin)
 ):
@@ -237,9 +238,9 @@ async def create_vpn_user(
     """
     Create a new VPN user.
     """
-    username = request.username
-    client_os = request.client_os
-    acl_profile = request.acl_profile
+    username = body.username
+    client_os = body.client_os
+    acl_profile = body.acl_profile
     
     # Check if user already exists
     existing = await get_user_by_username(username)

@@ -120,16 +120,17 @@ async def get_blacklist(admin: str = Depends(get_current_admin)):
 @router.post("/blacklist")
 @limiter.limit("20/hour")
 async def add_to_blacklist(
-    req: DomainRequest,
+    request: Request,
+    body: DomainRequest,
     csrf_protect: CsrfProtect = Depends(),
     admin: str = Depends(get_current_admin)
 ):
     """Add multiple domains to the blacklist with CSRF protection."""
-    await csrf_protect.validate_csrf(req)
+    await csrf_protect.validate_csrf(request)
     """Add multiple domains to the blacklist."""
     input_domains = []
-    if req.domain: input_domains.append(req.domain)
-    if req.domains: input_domains.extend(req.domains)
+    if body.domain: input_domains.append(body.domain)
+    if body.domains: input_domains.extend(body.domains)
     
     new_domains = [d.strip().lower() for d in input_domains if d.strip()]
     if not new_domains:
