@@ -81,7 +81,7 @@ def _sync_to_wildcards(domains: list):
         f.write("# DoH Canary Domains (Signal browsers to disable DoH)\n")
         for canary in DOH_CANARIES:
             f.write(f"template ANY ANY {canary} {{\n")
-            f.write("    nxdomain\n")
+            f.write("    rcode NXDOMAIN\n")
             f.write("}\n\n")
 
         # 2. Block DoH Providers
