@@ -15,6 +15,8 @@ from .totp import random_base32, get_provisioning_uri, verify_totp
 from .qr import generate_qr_data_uri
 from .limiter import limiter
 from sqlalchemy import update
+from pydantic import BaseModel
+from fastapi_csrf_protect import CsrfProtect
 
 router = APIRouter()
 
@@ -128,8 +130,6 @@ async def get_me(admin: str = Depends(get_current_admin)):
     }
 
 
-from pydantic import BaseModel
-from fastapi_csrf_protect import CsrfProtect
 
 class PasswordChangeRequest(BaseModel):
     current_password: str
